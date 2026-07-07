@@ -1904,6 +1904,11 @@ async function setLanguage(langCode, el) {
       if (activeTab.textContent.includes('Quiz')) type = 'quiz';
       setDrawerTab(type, activeTab);
     }
+    
+    // If audio is playing, dynamically restart it in the new language!
+    if (audioIsPlaying) {
+      speakActiveArticle();
+    }
   }
 }
 
@@ -2155,26 +2160,42 @@ function openOriginalLink() {
 // ═══════════════════════════════════════════════
 // TEXT TO SPEECH (TTS) AUDIO PLAYER
 // ═══════════════════════════════════════════════
-function speakActiveArticle() {
+async function speakActiveArticle() {
   if (!window.speechSynthesis) {
     alert('Audio speech synthesis is not supported on this browser.');
     return;
   }
   
+  // 1. Immediately play silent sound to preserve the user gesture synchronously
+  speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+  
   // Show floating bar
   const player = document.getElementById('audioPlayer');
   player.classList.add('visible');
   
-  const title = translatedSpeakTitle || activeArticle.title;
-  const excerpt = translatedSpeakExcerpt || activeArticle.excerpt;
-  
-  document.getElementById('audioTrackTitle').textContent = title;
+  document.getElementById('audioTrackTitle').textContent = 'Translating audio...';
   document.getElementById('audioTrackPub').textContent = activeArticle.publisher;
+  
+  // 2. Fetch fresh translation on the spot to ensure it updates instantly
+  let speakTitle = activeArticle.title;
+  let speakExcerpt = activeArticle.excerpt;
+  
+  if (currentLanguage !== 'en') {
+    try {
+      speakTitle = await fetchTranslation(activeArticle.title, 'en', currentLanguage);
+      speakExcerpt = await fetchTranslation(activeArticle.excerpt, 'en', currentLanguage);
+    } catch (err) {
+      console.error("Audio translation error:", err);
+    }
+  }
+  
+  // 3. Update the audio bar with the correct resolved text
+  document.getElementById('audioTrackTitle').textContent = speakTitle;
   
   // Setup Speech Utterance - Cancel any active speaking first
   speechSynthesis.cancel();
   
-  const textToRead = `${title}. ${excerpt}`;
+  const textToRead = `${speakTitle}. ${speakExcerpt}`;
   ttsUtterance = new SpeechSynthesisUtterance(textToRead);
   window.speechUtterance = ttsUtterance;
   
