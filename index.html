@@ -1830,6 +1830,10 @@ async function setLanguage(langCode, el) {
   console.log(`Switched view language to: ${langCode}`);
   
   translatePageContent();
+  
+  if (activeArticle) {
+    preTranslateSpeech();
+  }
 }
 
 async function translatePageContent() {
@@ -1932,6 +1936,20 @@ async function fetchTranslation(text, sourceLang = 'en', targetLang = 'hi') {
   }
 }
 
+let translatedSpeakTitle = "";
+let translatedSpeakExcerpt = "";
+
+async function preTranslateSpeech() {
+  if (!activeArticle) return;
+  if (currentLanguage === 'en') {
+    translatedSpeakTitle = activeArticle.title;
+    translatedSpeakExcerpt = activeArticle.excerpt;
+  } else {
+    translatedSpeakTitle = await fetchTranslation(activeArticle.title, 'en', currentLanguage);
+    translatedSpeakExcerpt = await fetchTranslation(activeArticle.excerpt, 'en', currentLanguage);
+  }
+}
+
 // ═══════════════════════════════════════════════
 // AI SUMMARY & ANALYSIS DRAWERS
 // ═══════════════════════════════════════════════
@@ -1942,6 +1960,8 @@ async function openDrawer(article) {
   document.getElementById('dTime').textContent = timeSince(article.published);
   
   document.getElementById('drawerOverlay').classList.add('open');
+  
+  preTranslateSpeech();
   
   // Load Default AI Tab
   setDrawerTab('summary', document.querySelector('.drawer-tab'));
@@ -2055,7 +2075,7 @@ function openOriginalLink() {
 // ═══════════════════════════════════════════════
 // TEXT TO SPEECH (TTS) AUDIO PLAYER
 // ═══════════════════════════════════════════════
-async function speakActiveArticle() {
+function speakActiveArticle() {
   if (!window.speechSynthesis) {
     alert('Audio speech synthesis is not supported on this browser.');
     return;
@@ -2065,22 +2085,16 @@ async function speakActiveArticle() {
   const player = document.getElementById('audioPlayer');
   player.classList.add('visible');
   
-  let speakTitle = activeArticle.title;
-  let speakExcerpt = activeArticle.excerpt;
+  const title = translatedSpeakTitle || activeArticle.title;
+  const excerpt = translatedSpeakExcerpt || activeArticle.excerpt;
   
-  if (currentLanguage !== 'en') {
-    document.getElementById('audioTrackTitle').textContent = 'Translating audio...';
-    speakTitle = await fetchTranslation(activeArticle.title, 'en', currentLanguage);
-    speakExcerpt = await fetchTranslation(activeArticle.excerpt, 'en', currentLanguage);
-  }
-  
-  document.getElementById('audioTrackTitle').textContent = speakTitle;
+  document.getElementById('audioTrackTitle').textContent = title;
   document.getElementById('audioTrackPub').textContent = activeArticle.publisher;
   
   // Setup Speech Utterance
   speechSynthesis.cancel();
   
-  const textToRead = `${speakTitle}. ${speakExcerpt}`;
+  const textToRead = `${title}. ${excerpt}`;
   ttsUtterance = new SpeechSynthesisUtterance(textToRead);
   
   // Try to find matching voice for target language
