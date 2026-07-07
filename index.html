@@ -1211,21 +1211,38 @@ footer {
     <div class="scope-tab sports-tab" onclick="setScope('sports', this)">⚽ Sports</div>
   </div>
 
-  <!-- STATE SELECTOR PANEL (State scope only) -->
   <div id="statePanel" style="display:none">
     <select class="state-select" id="stateSelect" onchange="fetchStateNews(this.value)">
+      <option value="Andhra Pradesh">📍 Andhra Pradesh</option>
+      <option value="Arunachal Pradesh">📍 Arunachal Pradesh</option>
       <option value="Assam">📍 Assam</option>
-      <option value="West Bengal">📍 West Bengal</option>
+      <option value="Bihar">📍 Bihar</option>
+      <option value="Chhattisgarh">📍 Chhattisgarh</option>
+      <option value="Delhi">📍 Delhi NCR</option>
+      <option value="Goa">📍 Goa</option>
       <option value="Gujarat">📍 Gujarat</option>
+      <option value="Haryana">📍 Haryana</option>
+      <option value="Himachal Pradesh">📍 Himachal Pradesh</option>
       <option value="Jammu Kashmir">📍 Jammu & Kashmir</option>
+      <option value="Jharkhand">📍 Jharkhand</option>
       <option value="Karnataka">📍 Karnataka</option>
       <option value="Kerala">📍 Kerala</option>
+      <option value="Madhya Pradesh">📍 Madhya Pradesh</option>
       <option value="Maharashtra">📍 Maharashtra</option>
+      <option value="Manipur">📍 Manipur</option>
+      <option value="Meghalaya">📍 Meghalaya</option>
+      <option value="Mizoram">📍 Mizoram</option>
+      <option value="Nagaland">📍 Nagaland</option>
       <option value="Odisha">📍 Odisha</option>
       <option value="Punjab">📍 Punjab</option>
+      <option value="Rajasthan">📍 Rajasthan</option>
+      <option value="Sikkim">📍 Sikkim</option>
       <option value="Tamil Nadu">📍 Tamil Nadu</option>
-      <option value="Telangana">📍 Telangana / Andhra Pradesh</option>
-      <option value="Delhi">📍 Delhi NCR</option>
+      <option value="Telangana">📍 Telangana</option>
+      <option value="Tripura">📍 Tripura</option>
+      <option value="Uttar Pradesh">📍 Uttar Pradesh</option>
+      <option value="Uttarakhand">📍 Uttarakhand</option>
+      <option value="West Bengal">📍 West Bengal</option>
     </select>
   </div>
 
@@ -1378,43 +1395,108 @@ const FEEDS = {
     {name: 'Amar Ujala', url: 'https://www.amarujala.com/rss/breaking-news.xml', cat: 'world', lang: 'hi'}
   ],
   state: {
+    'Andhra Pradesh': [
+      {name: 'Sakshi Post', url: 'https://english.sakshi.com/feed', lang: 'en'},
+      {name: 'TOI Andhra Pradesh', url: 'https://timesofindia.indiatimes.com/rssfeeds/8662939.cms', lang: 'en'}
+    ],
+    'Arunachal Pradesh': [
+      {name: 'Sentinel Arunachal', url: 'https://www.sentinelassam.com/arunachal-pradesh/feed', lang: 'en'}
+    ],
     'Assam': [
       {name: 'Sentinel Assam', url: 'https://www.sentinelassam.com/feed', lang: 'en'},
       {name: 'North East Now', url: 'https://nenow.in/feed', lang: 'en'}
     ],
-    'West Bengal': [
-      {name: 'Anandabazar Patrika', url: 'https://www.anandabazar.com/rss/national.xml', lang: 'bn'},
-      {name: 'The Telegraph', url: 'https://www.telegraphindia.com/feeds/feeds.xml', lang: 'en'}
+    'Bihar': [
+      {name: 'TOI Patna/Bihar', url: 'https://timesofindia.indiatimes.com/rssfeeds/2711813.cms', lang: 'en'}
+    ],
+    'Chhattisgarh': [
+      {name: 'TOI Raipur', url: 'https://timesofindia.indiatimes.com/rssfeeds/41182452.cms', lang: 'en'}
+    ],
+    'Goa': [
+      {name: 'TOI Goa', url: 'https://timesofindia.indiatimes.com/rssfeeds/30147773.cms', lang: 'en'}
     ],
     'Gujarat': [
-      {name: 'Gujarat Samachar', url: 'https://www.gujaratsamachar.com/rss/feeds.xml', lang: 'gu'}
+      {name: 'Gujarat Samachar', url: 'https://www.gujaratsamachar.com/rss/feeds.xml', lang: 'gu'},
+      {name: 'TOI Ahmedabad', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128822399.cms', lang: 'en'}
+    ],
+    'Haryana': [
+      {name: 'TOI Haryana', url: 'https://timesofindia.indiatimes.com/rssfeeds/2277129.cms', lang: 'en'}
+    ],
+    'Himachal Pradesh': [
+      {name: 'TOI Shimla', url: 'https://timesofindia.indiatimes.com/rssfeeds/2277209.cms', lang: 'en'}
     ],
     'Jammu Kashmir': [
-      {name: 'Kashmir Monitor', url: 'https://www.kashmirmonitor.in/feed', lang: 'en'}
+      {name: 'Kashmir Monitor', url: 'https://www.kashmirmonitor.in/feed', lang: 'en'},
+      {name: 'TOI Srinagar', url: 'https://timesofindia.indiatimes.com/rssfeeds/2711817.cms', lang: 'en'}
+    ],
+    'Jharkhand': [
+      {name: 'TOI Ranchi', url: 'https://timesofindia.indiatimes.com/rssfeeds/41182494.cms', lang: 'en'}
     ],
     'Karnataka': [
-      {name: 'Prajavani', url: 'https://www.prajavani.net/news/karnataka/rss.xml', lang: 'kn'}
+      {name: 'Prajavani Karnataka', url: 'https://www.prajavani.net/news/karnataka/rss.xml', lang: 'kn'},
+      {name: 'TOI Bangalore', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128830021.cms', lang: 'en'}
     ],
     'Kerala': [
-      {name: 'Mathrubhumi', url: 'https://www.mathrubhumi.com/rss/news.xml', lang: 'ml'}
+      {name: 'Mathrubhumi Kerala', url: 'https://www.mathrubhumi.com/rss/news.xml', lang: 'ml'},
+      {name: 'TOI Kochi/Kerala', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128833038.cms', lang: 'en'}
+    ],
+    'Madhya Pradesh': [
+      {name: 'TOI Bhopal', url: 'https://timesofindia.indiatimes.com/rssfeeds/3947055.cms', lang: 'en'}
     ],
     'Maharashtra': [
-      {name: 'Maharashtra Times', url: 'https://maharashtratimes.com/rssfeedstopstories.cms', lang: 'mr'}
+      {name: 'Maharashtra Times', url: 'https://maharashtratimes.com/rssfeedstopstories.cms', lang: 'mr'},
+      {name: 'TOI Mumbai', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128816762.cms', lang: 'en'}
+    ],
+    'Manipur': [
+      {name: 'North East Now Manipur', url: 'https://nenow.in/north-east-news/manipur/feed', lang: 'en'}
+    ],
+    'Meghalaya': [
+      {name: 'North East Now Meghalaya', url: 'https://nenow.in/north-east-news/meghalaya/feed', lang: 'en'}
+    ],
+    'Mizoram': [
+      {name: 'North East Now Mizoram', url: 'https://nenow.in/north-east-news/mizoram/feed', lang: 'en'}
+    ],
+    'Nagaland': [
+      {name: 'North East Now Nagaland', url: 'https://nenow.in/north-east-news/nagaland/feed', lang: 'en'}
     ],
     'Odisha': [
-      {name: 'Sambad', url: 'https://www.sambad.in/feed', lang: 'or'}
+      {name: 'Sambad Odisha', url: 'https://www.sambad.in/feed', lang: 'or'},
+      {name: 'TOI Bhubaneswar', url: 'https://timesofindia.indiatimes.com/rssfeeds/41182356.cms', lang: 'en'}
     ],
     'Punjab': [
-      {name: 'Punjab Kesari', url: 'https://www.punjabkesari.in/rss/national.xml', lang: 'hi'}
+      {name: 'Tribune Chandigarh', url: 'https://www.tribuneindia.com/rssfeed/default.rss', lang: 'en'},
+      {name: 'TOI Punjab', url: 'https://timesofindia.indiatimes.com/rssfeeds/2277129.cms', lang: 'en'}
+    ],
+    'Rajasthan': [
+      {name: 'TOI Jaipur', url: 'https://timesofindia.indiatimes.com/rssfeeds/2711793.cms', lang: 'en'}
+    ],
+    'Sikkim': [
+      {name: 'North East Now Sikkim', url: 'https://nenow.in/north-east-news/sikkim/feed', lang: 'en'}
     ],
     'Tamil Nadu': [
-      {name: 'Dinamalar', url: 'https://www.dinamalar.com/rss/feeds.asp', lang: 'ta'}
+      {name: 'Dinamalar Tamil', url: 'https://www.dinamalar.com/rss/feeds.asp', lang: 'ta'},
+      {name: 'TOI Chennai', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128817995.cms', lang: 'en'}
     ],
     'Telangana': [
-      {name: 'Eenadu', url: 'https://www.eenadu.net/rss/telangana.xml', lang: 'te'}
+      {name: 'Eenadu Telugu', url: 'https://www.eenadu.net/rss/telangana.xml', lang: 'te'},
+      {name: 'TOI Hyderabad', url: 'https://timesofindia.indiatimes.com/rssfeeds/8662939.cms', lang: 'en'}
+    ],
+    'Tripura': [
+      {name: 'North East Now Tripura', url: 'https://nenow.in/north-east-news/tripura/feed', lang: 'en'}
+    ],
+    'Uttar Pradesh': [
+      {name: 'TOI Lucknow/UP', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128830508.cms', lang: 'en'}
+    ],
+    'Uttarakhand': [
+      {name: 'TOI Dehradun', url: 'https://timesofindia.indiatimes.com/rssfeeds/3942225.cms', lang: 'en'}
+    ],
+    'West Bengal': [
+      {name: 'Anandabazar Patrika', url: 'https://www.anandabazar.com/rss/national.xml', lang: 'bn'},
+      {name: 'TOI Kolkata', url: 'https://timesofindia.indiatimes.com/rssfeeds/2711824.cms', lang: 'en'}
     ],
     'Delhi': [
-      {name: 'Hindustan Times Delhi', url: 'https://www.hindustantimes.com/rss/delhi/rssfeed.xml', lang: 'en'}
+      {name: 'Hindustan Times Delhi', url: 'https://www.hindustantimes.com/rss/delhi/rssfeed.xml', lang: 'en'},
+      {name: 'TOI Delhi', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128830209.cms', lang: 'en'}
     ]
   },
   sports: [
