@@ -1521,27 +1521,69 @@ function updateGreeting() {
 // DYNAMIC GEO + KEYLESS WEATHER
 // ═══════════════════════════════════════════════
 async function fetchLocationAndWeather() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        try {
+          // Reverse geocode to get actual city and country
+          const geoResp = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+          if (!geoResp.ok) throw new Error('Reverse geocoding failed');
+          const geoData = await geoResp.json();
+          const city = geoData.city || geoData.locality || geoData.principalSubdivision || 'Local City';
+          const country = geoData.countryName || 'India';
+          
+          fetchWeatherForCoords(lat, lon, city, country);
+        } catch (err) {
+          console.warn("Reverse geocode failed, using coordinates only", err);
+          fetchWeatherForCoords(lat, lon, 'Your Location', '');
+        }
+      },
+      (error) => {
+        console.warn("Browser geolocation denied/failed, falling back to IP geolocation", error);
+        fetchWeatherByIp();
+      },
+      { timeout: 6000 }
+    );
+  } else {
+    fetchWeatherByIp();
+  }
+}
+
+async function fetchWeatherByIp() {
   try {
-    // 1. Fetch user's geolocation via keyless IP location API
-    const response = await fetch('https://ipapi.co/json/');
-    if (!response.ok) throw new Error('Location fetch failed');
+    // Try ip-api.com first (faster and less restricted than ipapi.co)
+    const response = await fetch('https://ip-api.com/json/');
+    if (!response.ok) throw new Error('IP geo failed');
     const geo = await response.json();
+    if (geo.status === 'fail') throw new Error(geo.message);
     
-    // 2. Fetch live weather info using Open-Meteo (completely free & public)
-    const lat = geo.latitude || 19.07;
-    const lon = geo.longitude || 72.88;
-    const cityName = geo.city || 'Mumbai';
-    const countryName = geo.country_name || 'India';
+    fetchWeatherForCoords(geo.lat, geo.lon, geo.city, geo.country || 'India');
+  } catch (err) {
+    console.warn("Primary IP geo failed, trying secondary", err);
+    try {
+      const response = await fetch('https://ipapi.co/json/');
+      if (!response.ok) throw new Error('Secondary IP geo failed');
+      const geo = await response.json();
+      fetchWeatherForCoords(geo.latitude, geo.longitude, geo.city, geo.country_name || 'India');
+    } catch (e2) {
+      console.error("All geolocation failed, using fallback Delhi", e2);
+      renderFallbackWeather();
+    }
+  }
+}
+
+async function fetchWeatherForCoords(lat, lon, city, country) {
+  try {
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`;
+    const response = await fetch(weatherUrl);
+    if (!response.ok) throw new Error('Weather API call failed');
+    const wData = await response.json();
     
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
-    const wResponse = await fetch(weatherUrl);
-    if (!wResponse.ok) throw new Error('Weather fetch failed');
-    const wData = await wResponse.json();
-    
-    renderWeather(wData.current, wData.daily, cityName, countryName);
+    renderWeather(wData.current, null, city, country);
   } catch (error) {
     console.error('Weather error:', error);
-    // Fallback: Mock weather if offline / failed
     renderFallbackWeather();
   }
 }
