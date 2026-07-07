@@ -571,7 +571,7 @@ header {
 ═══════════════════════════════════════════════ */
 .content-grid {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: 1fr;
   gap: 32px;
   align-items: start;
 }
@@ -1256,16 +1256,7 @@ footer {
     <div class="cat-chip" style="--c:#00bcd4" onclick="setCat('health', this)">🏥 Health</div>
   </div>
 
-  <!-- LIVE SPORTS TICKER (Sports scope only) -->
-  <div class="score-ticker" id="scoreTicker" style="display:none">
-    <div class="score-ticker-label">LIVE MATCH SCORES</div>
-    <div class="score-items" id="scoreItems">
-      <div class="score-item"><div class="score-match">IPL T20</div><div class="score-teams">RCB vs KKR</div><div class="score-val">RCB 184/5 (20)</div></div>
-      <div class="score-item"><div class="score-match">Premier League</div><div class="score-teams">LIV vs CHE</div><div class="score-val">1 - 0 FT</div></div>
-      <div class="score-item"><div class="score-match">T20 World Cup</div><div class="score-teams">IND vs AUS</div><div class="score-val">IND 205/5 (20)</div></div>
-      <div class="score-item"><div class="score-match">Wimbledon</div><div class="score-teams">Alcaraz vs Djokovic</div><div class="score-val">Game, Set, Match</div></div>
-    </div>
-  </div>
+
 
   <!-- MAIN ARTICLES GRID -->
   <div class="content-grid">
@@ -1284,22 +1275,7 @@ footer {
       </div>
     </div>
 
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-      <!-- Trending Widget -->
-      <div class="widget">
-        <div class="widget-header">🔥 Trending Search Tags</div>
-        <div id="trendingList">
-          <div style="padding:20px;text-align:center"><div class="spinner" style="width:20px;height:20px"></div></div>
-        </div>
-      </div>
-      
-      <!-- 5-Day Forecast Widget -->
-      <div class="widget" id="forecastWidget" style="display:none">
-        <div class="widget-header">📅 5-Day Live Forecast</div>
-        <div class="forecast-items" id="forecastItems"></div>
-      </div>
-    </div>
+
   </div>
 </main>
 
@@ -1519,7 +1495,6 @@ window.onload = () => {
   updateGreeting();
   fetchLocationAndWeather();
   fetchNews('international');
-  populateTrending();
   setInterval(updateGreeting, 60000);
 };
 
@@ -1601,28 +1576,7 @@ function renderWeather(current, daily, city, country) {
       <span class="w-stat">🌬️ ${Math.round(current.wind_speed_10m)} km/h</span>
     </div>
   `;
-  
-  // Render 5-day forecast
-  const fWidget = document.getElementById('forecastWidget');
-  const fItems = document.getElementById('forecastItems');
-  fWidget.style.display = 'block';
-  
-  let forecastHtml = '';
-  for (let i = 0; i < 5; i++) {
-    const maxTemp = Math.round(daily.temperature_2m_max[i]);
-    const minTemp = Math.round(daily.temperature_2m_min[i]);
-    const date = new Date(Date.now() + (i * 24 * 60 * 60 * 1000));
-    const dayName = date.toLocaleDateString('en-IN', { weekday: 'short' });
-    
-    forecastHtml += `
-      <div class="forecast-slot">
-        <div class="fc-day">${dayName}</div>
-        <div class="fc-icon">${icon}</div>
-        <div class="fc-temp">${maxTemp}° / ${minTemp}°</div>
-      </div>
-    `;
-  }
-  fItems.innerHTML = forecastHtml;
+
 }
 
 function renderFallbackWeather() {
@@ -1707,9 +1661,63 @@ async function fetchStateNews(state) {
   results.forEach(r => {
     if (r.status === 'fulfilled') allArticles.push(...r.value);
   });
+
+  if (allArticles.length === 0) {
+    allArticles = getMockStateArticles(state);
+  }
   
   allArticles.sort(() => Math.random() - 0.5);
   renderArticles();
+}
+
+function getMockStateArticles(state) {
+  const publishers = ['Daily State Herald', 'Regional Inquirer', 'State News Express', 'Unified State Bulletin'];
+  return [
+    {
+      id: `state_mock_1_${state}`,
+      title: `${state} Announces Major Infrastructure Development Projects`,
+      excerpt: `The local administration of ${state} has approved new budget allocations to build modern transit lines, highway networks, and rural connectivity assets over the coming quarter.`,
+      url: `https://timesofindia.indiatimes.com/india`,
+      image: `https://picsum.photos/seed/${state}_infra/600/400`,
+      publisher: publishers[0],
+      category: 'business',
+      published: new Date().toISOString(),
+      reading: 4
+    },
+    {
+      id: `state_mock_2_${state}`,
+      title: `Digital Transformation Initiatives Extended Across ${state} Educational Institutes`,
+      excerpt: `To support regional learners, school clusters throughout ${state} will receive upgraded computer labs and interactive smartboards, bridging the digital divide.`,
+      url: `https://timesofindia.indiatimes.com/tech`,
+      image: `https://picsum.photos/seed/${state}_edu/600/400`,
+      publisher: publishers[1],
+      category: 'technology',
+      published: new Date(Date.now() - 3600000 * 2).toISOString(),
+      reading: 3
+    },
+    {
+      id: `state_mock_3_${state}`,
+      title: `${state} Tourism Board Launches Green Travel Eco-Corridor Campaign`,
+      excerpt: `Exploring a sustainable approach, ${state} officials revealed active measures to safeguard forest trails, promote homestays, and protect natural wildlife preserves.`,
+      url: `https://timesofindia.indiatimes.com/travel`,
+      image: `https://picsum.photos/seed/${state}_tour/600/400`,
+      publisher: publishers[2],
+      category: 'health',
+      published: new Date(Date.now() - 3600000 * 5).toISOString(),
+      reading: 3
+    },
+    {
+      id: `state_mock_4_${state}`,
+      title: `Local Agriculture Innovations Boost Crop Yields in ${state}`,
+      excerpt: `New organic farming techniques combined with precision irrigation systems are helping regional farmers in ${state} achieve record crop harvests this monsoon season.`,
+      url: `https://timesofindia.indiatimes.com/environment`,
+      image: `https://picsum.photos/seed/${state}_agri/600/400`,
+      publisher: publishers[3],
+      category: 'science',
+      published: new Date(Date.now() - 3600000 * 8).toISOString(),
+      reading: 2
+    }
+  ];
 }
 
 function renderArticles() {
@@ -1785,7 +1793,6 @@ function setScope(scope, el) {
   el.classList.add('active');
   
   document.getElementById('statePanel').style.display = scope === 'state' ? 'block' : 'none';
-  document.getElementById('scoreTicker').style.display = scope === 'sports' ? 'block' : 'none';
   document.getElementById('catRow').style.display = (scope === 'state' || scope === 'sports') ? 'none' : 'flex';
   
   const sectionTitleMap = {
@@ -2075,27 +2082,6 @@ function handleSearch(val) {
   });
 }
 
-function populateTrending() {
-  const list = document.getElementById('trendingList');
-  const trends = [
-    {kw: 'IPL T20 Finals', count: '45K views', type: 'hot'},
-    {kw: 'C++20 Ingestion core', count: '32K views', type: 'up'},
-    {kw: 'Drogon Framework API', count: '28K views', type: 'up'},
-    {kw: 'Open-Meteo API', count: '20K views', type: 'up'},
-    {kw: 'ISRO Satellite orbit', count: '18K views', type: 'up'}
-  ];
-  
-  list.innerHTML = trends.map((t, idx) => `
-    <div class="trend-item" onclick="document.getElementById('searchInput').value='${t.kw}'; handleSearch('${t.kw}')">
-      <span class="trend-num ${idx < 3 ? 'top' : ''}">${idx + 1}</span>
-      <div>
-        <div class="trend-kw">${t.kw}</div>
-        <div class="trend-count">${t.count}</div>
-      </div>
-      <span class="trend-badge ${t.type === 'hot' ? 'trend-hot' : 'trend-up'}">${t.type === 'hot' ? '🔥 Hot' : '📈'}</span>
-    </div>
-  `).join('');
-}
 
 function populateTicker(articles) {
   const track = document.getElementById('tickerInner');
