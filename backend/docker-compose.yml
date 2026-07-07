@@ -80,10 +80,11 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
-      - ./database/indexes.sql:/docker-entrypoint-initdb.d/02_indexes.sql:ro
-      - ./database/stored_procedures.sql:/docker-entrypoint-initdb.d/03_procedures.sql:ro
-      - ./database/triggers.sql:/docker-entrypoint-initdb.d/04_triggers.sql:ro
+      - ../database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ../database/indexes.sql:/docker-entrypoint-initdb.d/02_indexes.sql:ro
+      - ../database/stored_procedures.sql:/docker-entrypoint-initdb.d/03_procedures.sql:ro
+      - ../database/triggers.sql:/docker-entrypoint-initdb.d/04_triggers.sql:ro
+      - ../database/partitioning.sql:/docker-entrypoint-initdb.d/05_partitioning.sql:ro
     networks:
       - news_net
     healthcheck:

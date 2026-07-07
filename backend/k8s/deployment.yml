@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: news-backend
+  namespace: news-platform
+  labels:
+    app: news-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: news-backend
+  template:
+    metadata:
+      labels:
+        app: news-backend
+    spec:
+      containers:
+      - name: news-backend
+        image: ghcr.io/shanmukha-belide-pixel/news-backend:IMAGE_TAG
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        envFrom:
+        - configMapRef:
+            name: news-config
+        env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: news-secrets
+              key: jwt-secret
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: news-secrets
+              key: openai-key
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: news-secrets
+              key: db-password
+        resources:
+          limits:
+            cpu: "2"
+            memory: 2Gi
+          requests:
+            cpu: "500m"
+            memory: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 15

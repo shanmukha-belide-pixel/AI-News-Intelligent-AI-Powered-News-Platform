@@ -1,0 +1,129 @@
+# =============================================================================
+# Kubernetes Production Deployment Manifests — AI News Platform
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: news-platform
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: news-config
+  namespace: news-platform
+data:
+  SERVER_PORT: "8080"
+  SERVER_THREADS: "8"
+  LOG_LEVEL: "info"
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_NAME: "ai_news"
+  DB_USER: "news_user"
+  DB_POOL_SIZE: "15"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  KAFKA_BROKERS: "kafka-service:9092"
+  ES_URL: "http://elasticsearch-service:9200"
+  MINIO_ENDPOINT: "http://minio-service:9000"
+  OPENAI_MODEL: "gpt-4o"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: news-backend
+  namespace: news-platform
+  labels:
+    app: news-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: news-backend
+  template:
+    metadata:
+      labels:
+        app: news-backend
+    spec:
+      containers:
+      - name: news-backend
+        image: ghcr.io/shanmukha-belide-pixel/news-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        envFrom:
+        - configMapRef:
+            name: news-config
+        env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: news-secrets
+              key: jwt-secret
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: news-secrets
+              key: openai-key
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: news-secrets
+              key: db-password
+        resources:
+          limits:
+            cpu: "2"
+            memory: 2Gi
+          requests:
+            cpu: "500m"
+            memory: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: news-backend-service
+  namespace: news-platform
+spec:
+  selector:
+    app: news-backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: news-ingress
+  namespace: news-platform
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "news-backend-service"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: api.ainews.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: news-backend-service
+            port:
+              number: 80

@@ -92,12 +92,7 @@ find_package(GTest REQUIRED)
 
 file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
 
-add_executable(news_tests ${TEST_SOURCES}
-    # Include non-main sources for testing
-    src/core/auth/jwt_service.cpp
-    src/core/news/news_repository.cpp
-    src/infrastructure/redis_client.cpp
-)
+add_executable(news_tests ${TEST_SOURCES})
 
 target_include_directories(news_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/src
