@@ -2119,7 +2119,7 @@ function speakActiveArticle() {
   document.getElementById('audioTrackTitle').textContent = title;
   document.getElementById('audioTrackPub').textContent = activeArticle.publisher;
   
-  // Setup Speech Utterance
+  // Setup Speech Utterance - Cancel any active speaking first
   speechSynthesis.cancel();
   
   const textToRead = `${title}. ${excerpt}`;
@@ -2150,13 +2150,28 @@ function speakActiveArticle() {
     stopAudioState();
   };
   
-  ttsUtterance.onerror = () => {
-    stopAudioState();
+  let hasFailed = false;
+  ttsUtterance.onerror = (e) => {
+    console.error("SpeechSynthesis error:", e);
+    if (!hasFailed) {
+      hasFailed = true;
+      // Fallback: retry with default browser voice if language code caused error
+      console.warn("Speech locale failed. Retrying with browser default voice...");
+      const retryUtterance = new SpeechSynthesisUtterance(textToRead);
+      retryUtterance.rate = audioSpeed;
+      retryUtterance.onend = () => stopAudioState();
+      retryUtterance.onerror = () => stopAudioState();
+      speechSynthesis.speak(retryUtterance);
+    } else {
+      stopAudioState();
+    }
   };
   
-  // Start speaking
-  speechSynthesis.speak(ttsUtterance);
-  startAudioState();
+  // Wrap speak inside setTimeout to circumvent Chrome cancel/hang bug
+  setTimeout(() => {
+    speechSynthesis.speak(ttsUtterance);
+    startAudioState();
+  }, 100);
 }
 
 function toggleAudio() {
