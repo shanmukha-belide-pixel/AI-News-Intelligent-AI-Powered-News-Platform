@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI News Platform — Live News</title>
+<meta name="description" content="AI-powered news platform with International, National, State, Sports news and live weather"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Merriweather:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════ */
+:root{
+  --bg:#090d1a;
+  --surface:#111827;
+  --card:#1a2235;
+  --card2:#1e2a3d;
+  --border:#2a3347;
+  --text:#eef0f6;
+  --subtext:#8a94a6;
+  --primary:#6c63ff;
+  --primary-glow:rgba(108,99,255,.25);
+  --accent:#00d4aa;
+  --sports:#f39c12;
+  --breaking:#e74c3c;
+  --national:#00c853;
+  --state:#ff7043;
+  --radius:16px;
+  --font:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ═══════════════════════════════════════════════
+   ANIMATED BACKGROUND
+═══════════════════════════════════════════════ */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 20% -10%,rgba(108,99,255,.15) 0%,transparent 60%),
+             radial-gradient(ellipse 60% 40% at 80% 110%,rgba(0,212,170,.1) 0%,transparent 60%);
+  pointer-events:none;z-index:0;
+}
+
+/* ═══════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════ */
+header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(9,13,26,.85);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;
+}
+.header-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:16px;height:64px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-icon{width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-size:20px;font-weight:800;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-search{
+  flex:1;max-width:400px;margin-left:auto;
+  position:relative;
+}
+.header-search input{
+  width:100%;padding:9px 16px 9px 40px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;color:var(--text);font-size:14px;
+  font-family:var(--font);outline:none;transition:.2s;
+}
+.header-search input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
+.header-search .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--subtext);font-size:16px}
+.header-btns{display:flex;align-items:center;gap:8px;margin-left:16px}
+.icon-btn{
+  width:38px;height:38px;border-radius:10px;border:1px solid var(--border);
+  background:var(--card);color:var(--text);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  transition:.2s;text-decoration:none;
+}
+.icon-btn:hover{background:var(--card2);border-color:var(--primary)}
+#theme-btn{cursor:pointer}
+.api-badge{
+  padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;
+  background:var(--primary-glow);color:var(--primary);border:1px solid var(--primary);
+  cursor:pointer;white-space:nowrap;transition:.2s;
+}
+.api-badge:hover{background:var(--primary);color:#fff}
+
+/* ═══════════════════════════════════════════════
+   BREAKING TICKER
+═══════════════════════════════════════════════ */
+.ticker-bar{
+  background:linear-gradient(90deg,var(--breaking),#c0392b);
+  padding:8px 24px;overflow:hidden;
+  display:flex;align-items:center;gap:16px;
+}
+.ticker-label{
+  font-size:11px;font-weight:800;letter-spacing:1.5px;
+  background:#fff;color:var(--breaking);padding:2px 8px;border-radius:4px;
+  white-space:nowrap;flex-shrink:0;
+}
+.ticker-track{overflow:hidden;flex:1}
+.ticker-inner{display:flex;gap:40px;animation:ticker 30s linear infinite;white-space:nowrap}
+.ticker-inner:hover{animation-play-state:paused}
+.ticker-item{font-size:13px;font-weight:500;color:#fff;cursor:pointer;flex-shrink:0}
+.ticker-item:hover{text-decoration:underline}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════ */
+.main{max-width:1400px;margin:0 auto;padding:24px;position:relative;z-index:1}
+
+/* ═══════════════════════════════════════════════
+   TOP ROW: Greeting + Weather
+═══════════════════════════════════════════════ */
+.top-row{display:grid;grid-template-columns:1fr 320px;gap:20px;margin-bottom:24px}
+@media(max-width:900px){.top-row{grid-template-columns:1fr}}
+.greeting-card{
+  background:linear-gradient(135deg,rgba(108,99,255,.2),rgba(0,212,170,.1));
+  border:1px solid rgba(108,99,255,.3);border-radius:var(--radius);
+  padding:24px 28px;
+}
+.greeting-time{font-size:13px;color:var(--accent);font-weight:600;margin-bottom:4px}
+.greeting-text{font-size:28px;font-weight:800;margin-bottom:8px;
+  background:linear-gradient(135deg,#fff,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.greeting-sub{font-size:14px;color:var(--subtext);line-height:1.6}
+.streak-row{display:flex;gap:20px;margin-top:16px}
+.streak-chip{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.05);border:1px solid var(--border);
+  border-radius:12px;padding:8px 14px;font-size:13px;
+}
+.streak-chip span:first-child{font-size:20px}
+
+/* ═══════════════════════════════════════════════
+   WEATHER CARD
+═══════════════════════════════════════════════ */
+.weather-card{
+  border-radius:var(--radius);padding:20px;
+  position:relative;overflow:hidden;cursor:pointer;
+  transition:.3s;min-height:160px;
+  display:flex;flex-direction:column;justify-content:space-between;
+}
+.weather-card:hover{transform:translateY(-2px)}
+.weather-bg-clear{background:linear-gradient(135deg,#ff8c00,#6c63ff)}
+.weather-bg-cloud{background:linear-gradient(135deg,#4a6fa5,#6c63ff)}
+.weather-bg-rain {background:linear-gradient(135deg,#2c3e50,#3498db)}
+.weather-bg-haze {background:linear-gradient(135deg,#757f9a,#d7dde8)}
+.weather-bg-default{background:linear-gradient(135deg,#2980b9,#6dd5fa)}
+.weather-city{font-size:13px;opacity:.8;display:flex;align-items:center;gap:4px}
+.weather-temp{font-size:48px;font-weight:300;line-height:1;color:#fff}
+.weather-desc{font-size:14px;font-weight:500;color:rgba(255,255,255,.9);text-transform:capitalize}
+.weather-icon{position:absolute;right:16px;top:16px;font-size:56px;opacity:.9}
+.weather-stats{display:flex;gap:12px;margin-top:8px}
+.w-stat{font-size:12px;color:rgba(255,255,255,.75);display:flex;align-items:center;gap:4px}
+.weather-loading{display:flex;align-items:center;justify-content:center;height:100%;color:var(--subtext)}
+
+/* ═══════════════════════════════════════════════
+   SCOPE TABS
+═══════════════════════════════════════════════ */
+.scope-nav{display:flex;gap:6px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.scope-nav::-webkit-scrollbar{display:none}
+.scope-tab{
+  padding:9px 18px;border-radius:24px;font-size:14px;font-weight:600;
+  border:1px solid var(--border);background:var(--card);color:var(--subtext);
+  cursor:pointer;white-space:nowrap;transition:.2s;
+}
+.scope-tab:hover{border-color:var(--primary);color:var(--text)}
+.scope-tab.active{
+  background:var(--primary);border-color:var(--primary);color:#fff;
+  box-shadow:0 4px 20px var(--primary-glow);
+}
+.scope-tab.sports-tab.active{background:var(--sports);border-color:var(--sports);box-shadow:0 4px 20px rgba(243,156,18,.3)}
+.scope-tab.state-tab.active{background:var(--state);border-color:var(--state)}
+.scope-tab.national-tab.active{background:var(--national);border-color:var(--national)}
+
+/* Category chips */
+.cat-row{display:flex;gap:6px;overflow-x:auto;margin-bottom:20px;padding-bottom:4px;scrollbar-width:none}
+.cat-row::-webkit-scrollbar{display:none}
+.cat-chip{
+  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--card);color:var(--subtext);
+  cursor:pointer;white-space:nowrap;transition:.2s;
+}
+.cat-chip:hover,.cat-chip.active{color:#fff;border-color:currentColor}
+
+/* ═══════════════════════════════════════════════
+   TWO-COLUMN LAYOUT
+═══════════════════════════════════════════════ */
+.content-grid{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
+@media(max-width:1100px){.content-grid{grid-template-columns:1fr}}
+.sidebar{display:flex;flex-direction:column;gap:20px}
+
+/* ═══════════════════════════════════════════════
+   NEWS GRID
+═══════════════════════════════════════════════ */
+.section-title{
+  font-size:18px;font-weight:700;margin-bottom:16px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-title .dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--primary);display:inline-block;
+}
+.news-grid{display:grid;gap:16px}
+
+/* ═══════════════════════════════════════════════
+   NEWS CARD
+═══════════════════════════════════════════════ */
+.nc{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;cursor:pointer;
+  transition:.25s;display:flex;flex-direction:column;
+  animation:fadeUp .4s ease both;
+}
+.nc:hover{transform:translateY(-4px);border-color:var(--primary);
+  box-shadow:0 8px 32px rgba(0,0,0,.4)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.nc-img{position:relative;overflow:hidden;height:0;padding-bottom:52%;background:var(--card2)}
+.nc-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:.4s}
+.nc:hover .nc-img img{transform:scale(1.04)}
+.nc-img .overlay{
+  position:absolute;bottom:0;left:0;right:0;height:70%;
+  background:linear-gradient(transparent,rgba(10,14,26,.95));
+}
+.nc-badge{
+  position:absolute;top:10px;left:10px;
+  font-size:10px;font-weight:700;letter-spacing:.8px;
+  padding:3px 9px;border-radius:20px;color:#fff;
+}
+.nc-scope{
+  position:absolute;bottom:8px;right:8px;
+  font-size:10px;padding:2px 8px;border-radius:10px;
+  background:rgba(0,0,0,.6);color:rgba(255,255,255,.8);
+}
+.nc-breaking-badge{
+  position:absolute;top:10px;right:10px;
+  background:var(--breaking);color:#fff;font-size:10px;font-weight:700;
+  padding:3px 9px;border-radius:20px;letter-spacing:.8px;
+  display:flex;align-items:center;gap:5px;
+}
+.nc-breaking-dot{width:6px;height:6px;border-radius:50%;background:#fff;
+  animation:blink .8s ease-in-out infinite alternate}
+@keyframes blink{from{opacity:1}to{opacity:.3}}
+.nc-body{padding:14px;flex:1;display:flex;flex-direction:column;gap:6px}
+.nc-pub{display:flex;align-items:center;gap:8px;font-size:12px}
+.nc-pub-name{color:var(--primary);font-weight:600}
+.nc-pub-time{color:var(--subtext);margin-left:auto}
+.nc-title{font-size:16px;font-weight:700;line-height:1.4;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nc-ai{
+  background:rgba(108,99,255,.08);border-left:2px solid var(--primary);
+  border-radius:0 8px 8px 0;padding:8px 10px;
+  font-size:12px;color:var(--subtext);line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.nc-ai .ai-icon{color:var(--primary);margin-right:4px}
+.nc-footer{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:6px}
+.nc-read{font-size:11px;color:var(--subtext);display:flex;align-items:center;gap:4px}
+.nc-actions{display:flex;gap:4px;margin-left:auto}
+.nc-btn{
+  width:30px;height:30px;border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--subtext);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  transition:.2s;
+}
+.nc-btn:hover{background:var(--card2);color:var(--text);border-color:var(--primary)}
+.nc-btn.liked{color:#e74c3c;border-color:#e74c3c}
+.nc-btn.bookmarked{color:var(--primary);border-color:var(--primary)}
+
+/* Featured card (first item) */
+.nc.featured{grid-column:1/-1}
+.nc.featured .nc-img{padding-bottom:40%}
+.nc.featured .nc-title{font-size:20px;-webkit-line-clamp:3}
+
+/* ═══════════════════════════════════════════════
+   SPORTS SCORE TICKER
+═══════════════════════════════════════════════ */
+.score-ticker{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;margin-bottom:20px;
+  overflow:hidden;
+}
+.score-ticker-label{font-size:11px;font-weight:700;letter-spacing:1px;
+  color:var(--sports);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.score-ticker-label::before{content:'⚽';font-size:14px}
+.score-items{display:flex;gap:16px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.score-items::-webkit-scrollbar{display:none}
+.score-item{
+  background:var(--card2);border:1px solid var(--border);border-radius:10px;
+  padding:8px 14px;white-space:nowrap;font-size:12px;flex-shrink:0;
+  display:flex;flex-direction:column;gap:4px;min-width:140px;
+}
+.score-match{font-weight:600;font-size:11px;color:var(--subtext)}
+.score-teams{font-weight:700;font-size:13px}
+.score-val{color:var(--sports);font-weight:800}
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR WIDGETS
+═══════════════════════════════════════════════ */
+.widget{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.widget-header{padding:14px 16px;font-size:14px;font-weight:700;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.widget-header .wh-icon{font-size:16px}
+
+/* Trending */
+.trend-item{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;
+  display:flex;align-items:center;gap:12px;transition:.2s}
+.trend-item:last-child{border-bottom:none}
+.trend-item:hover{background:var(--card2)}
+.trend-num{font-size:13px;font-weight:800;color:var(--subtext);width:20px}
+.trend-num.top{color:var(--primary)}
+.trend-text{flex:1}
+.trend-kw{font-size:13px;font-weight:600;margin-bottom:2px}
+.trend-count{font-size:11px;color:var(--subtext)}
+.trend-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.trend-up{background:rgba(0,212,170,.1);color:var(--accent)}
+.trend-hot{background:rgba(231,76,60,.1);color:var(--breaking)}
+
+/* State selector */
+.state-select{
+  width:100%;padding:10px 14px;background:var(--card);
+  border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-size:14px;font-family:var(--font);
+  outline:none;cursor:pointer;transition:.2s;margin-bottom:12px;
+}
+.state-select:focus{border-color:var(--state)}
+
+/* Language filter */
+.lang-row{display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--border)}
+.lang-chip{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;
+  border:1px solid var(--border);background:var(--card2);color:var(--subtext);cursor:pointer;transition:.2s}
+.lang-chip.active{background:var(--state);border-color:var(--state);color:#fff}
+
+/* ═══════════════════════════════════════════════
+   FORECAST WIDGET
+═══════════════════════════════════════════════ */
+.forecast-items{display:flex;overflow-x:auto;gap:8px;padding:12px 16px;scrollbar-width:none}
+.forecast-items::-webkit-scrollbar{display:none}
+.forecast-slot{
+  background:var(--card2);border:1px solid var(--border);border-radius:10px;
+  padding:10px;text-align:center;flex-shrink:0;min-width:72px;
+}
+.fc-day{font-size:11px;color:var(--subtext);margin-bottom:4px}
+.fc-icon{font-size:22px;margin-bottom:4px}
+.fc-temp{font-size:14px;font-weight:700}
+.fc-rain{font-size:11px;color:#3498db}
+
+/* ═══════════════════════════════════════════════
+   SKELETON
+═══════════════════════════════════════════════ */
+.skeleton{background:var(--card);border-radius:var(--radius);animation:shimmer 1.4s ease infinite}
+@keyframes shimmer{
+  0%,100%{opacity:.5}
+  50%{opacity:1}
+}
+.skeleton-img{height:180px;border-radius:var(--radius) var(--radius) 0 0;background:var(--card2)}
+.skeleton-line{height:12px;background:var(--card2);border-radius:6px;margin:8px 14px}
+.skeleton-line.w60{width:60%}
+.skeleton-line.w80{width:80%}
+.skeleton-line.w40{width:40%}
+
+/* ═══════════════════════════════════════════════
+   API KEY MODAL
+═══════════════════════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1000;backdrop-filter:blur(6px);
+  opacity:0;pointer-events:none;transition:.3s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:32px;max-width:480px;width:90%;
+  transform:scale(.95);transition:.3s;
+}
+.modal-overlay.open .modal{transform:scale(1)}
+.modal h2{font-size:20px;font-weight:700;margin-bottom:8px}
+.modal p{font-size:13px;color:var(--subtext);line-height:1.6;margin-bottom:20px}
+.modal label{font-size:12px;font-weight:600;color:var(--subtext);display:block;margin-bottom:4px}
+.modal input{
+  width:100%;padding:10px 14px;background:var(--card);
+  border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-size:13px;font-family:var(--font);
+  outline:none;margin-bottom:12px;transition:.2s;
+}
+.modal input:focus{border-color:var(--primary)}
+.modal-btns{display:flex;gap:10px;margin-top:8px}
+.btn-primary{flex:1;padding:11px;background:var(--primary);color:#fff;
+  border:none;border-radius:10px;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:var(--font);transition:.2s}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-ghost{flex:1;padding:11px;background:var(--card);color:var(--text);
+  border:1px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:var(--font);transition:.2s}
+.btn-ghost:hover{background:var(--card2)}
+.source-note{
+  background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);
+  border-radius:10px;padding:10px 14px;font-size:12px;color:var(--subtext);
+  margin-bottom:16px;line-height:1.6;
+}
+.source-note strong{color:var(--primary)}
+
+/* ═══════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════ */
+footer{
+  border-top:1px solid var(--border);margin-top:60px;padding:24px;
+  text-align:center;color:var(--subtext);font-size:13px;
+}
+
+/* ═══════════════════════════════════════════════
+   LOADING SPINNER
+═══════════════════════════════════════════════ */
+.spinner{
+  width:36px;height:36px;border:3px solid var(--border);
+  border-top-color:var(--primary);border-radius:50%;
+  animation:spin .8s linear infinite;margin:40px auto;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════════════════════════════════════
+   LIGHT MODE
+═══════════════════════════════════════════════ */
+body.light{
+  --bg:#f0f4ff;--surface:#fff;--card:#fff;--card2:#f5f7ff;
+  --border:#e2e8f0;--text:#1a202c;--subtext:#718096;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media(max-width:768px){
+  .main{padding:12px}
+  .top-row{grid-template-columns:1fr}
+  .header-search{display:none}
+  .nc.featured .nc-img{padding-bottom:55%}
+  .nc.featured .nc-title{font-size:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+<header>
+  <div class="header-inner">
+    <a class="logo" href="#">
+      <div class="logo-icon">🌐</div>
+      <span class="logo-text">AI News</span>
+    </a>
+    <div class="header-search">
+      <span class="si">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search news, sports, weather…" oninput="handleSearch(this.value)"/>
+    </div>
+    <div class="header-btns">
+      <span class="api-badge" onclick="openModal()">⚙️ API Keys</span>
+      <button class="icon-btn" id="theme-btn" title="Toggle theme" onclick="toggleTheme()">🌙</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══ BREAKING TICKER ══════════════════════════════════════════════════ -->
+<div class="ticker-bar">
+  <span class="ticker-label">BREAKING</span>
+  <div class="ticker-track">
+    <div class="ticker-inner" id="tickerInner">
+      <span class="ticker-item" onclick="">Loading breaking news…</span>
+      <span class="ticker-item">•</span>
+      <span class="ticker-item" onclick="">Stay tuned for live updates</span>
+      <span class="ticker-item">•</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN CONTENT ══════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- Greeting + Weather -->
+  <div class="top-row">
+    <div class="greeting-card">
+      <div class="greeting-time" id="greetingTime">☀️ Good Morning</div>
+      <div class="greeting-text" id="greetingText">Today's Live News</div>
+      <div class="greeting-sub" id="greetingDate">Loading date…</div>
+      <div class="streak-row">
+        <div class="streak-chip"><span>📰</span><span id="sourceCount">60+ Sources</span></div>
+        <div class="streak-chip"><span>🌍</span><span>Int'l + National + State + Sports</span></div>
+        <div class="streak-chip"><span>🤖</span><span>AI Summaries</span></div>
+      </div>
+    </div>
+    <div id="weatherCard" class="weather-card weather-bg-default">
+      <div class="weather-loading">
+        <div>⛅ Loading weather…<br><small style="color:var(--subtext);font-size:11px;margin-top:4px">Click API Keys to add OpenWeatherMap key</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scope Tabs -->
+  <div class="scope-nav" id="scopeNav">
+    <div class="scope-tab active" onclick="setScope('international',this)">🌍 International</div>
+    <div class="scope-tab national-tab" onclick="setScope('national',this)">🇮🇳 National (India)</div>
+    <div class="scope-tab state-tab" onclick="setScope('state',this)">📍 State</div>
+    <div class="scope-tab sports-tab" onclick="setScope('sports',this)">⚽ Sports</div>
+    <div class="scope-tab" onclick="setScope('technology',this)">💻 Tech</div>
+    <div class="scope-tab" onclick="setScope('business',this)">📈 Business</div>
+    <div class="scope-tab" onclick="setScope('science',this)">🔬 Science</div>
+    <div class="scope-tab" onclick="setScope('health',this)">🏥 Health</div>
+  </div>
+
+  <!-- Category Chips (hidden for state/sports) -->
+  <div class="cat-row" id="catRow">
+    <div class="cat-chip active" style="color:#6c63ff;border-color:#6c63ff" onclick="setCat('',this)">All</div>
+    <div class="cat-chip" style="--c:#4a90d9" onclick="setCat('world',this)">🌐 World</div>
+    <div class="cat-chip" style="--c:#7b68ee" onclick="setCat('technology',this)">💻 Tech</div>
+    <div class="cat-chip" style="--c:#2ecc71" onclick="setCat('business',this)">📈 Business</div>
+    <div class="cat-chip" style="--c:#e74c3c" onclick="setCat('politics',this)">🗳️ Politics</div>
+    <div class="cat-chip" style="--c:#f39c12" onclick="setCat('sports',this)">⚽ Sports</div>
+    <div class="cat-chip" style="--c:#00bcd4" onclick="setCat('health',this)">🏥 Health</div>
+    <div class="cat-chip" style="--c:#9c27b0" onclick="setCat('science',this)">🔬 Science</div>
+    <div class="cat-chip" style="--c:#e91e63" onclick="setCat('entertainment',this)">🎬 Entertainment</div>
+  </div>
+
+  <!-- Sports Score Ticker (only for sports tab) -->
+  <div class="score-ticker" id="scoreTicker" style="display:none">
+    <div class="score-ticker-label">LIVE SCORES & FIXTURES</div>
+    <div class="score-items" id="scoreItems">
+      <div class="score-item"><div class="score-match">IPL 2026</div><div class="score-teams">MI vs CSK</div><div class="score-val">Live</div></div>
+      <div class="score-item"><div class="score-match">Premier League</div><div class="score-teams">MCI vs ARS</div><div class="score-val">3-1 FT</div></div>
+      <div class="score-item"><div class="score-match">Formula 1</div><div class="score-teams">British GP</div><div class="score-val">Race Day</div></div>
+      <div class="score-item"><div class="score-match">Wimbledon</div><div class="score-teams">Djokovic vs Sinner</div><div class="score-val">SF</div></div>
+      <div class="score-item"><div class="score-match">NBA Finals</div><div class="score-teams">LAL vs GSW</div><div class="score-val">G5</div></div>
+    </div>
+  </div>
+
+  <!-- State Selector (only for state tab) -->
+  <div id="statePanel" style="display:none;margin-bottom:20px">
+    <select class="state-select" id="stateSelect" onchange="fetchStateNews(this.value)">
+      <option value="Maharashtra">📍 Maharashtra</option>
+      <option value="Tamil Nadu">📍 Tamil Nadu</option>
+      <option value="Karnataka">📍 Karnataka</option>
+      <option value="Kerala">📍 Kerala</option>
+      <option value="Andhra Pradesh">📍 Andhra Pradesh</option>
+      <option value="Telangana">📍 Telangana</option>
+      <option value="West Bengal">📍 West Bengal</option>
+      <option value="Gujarat">📍 Gujarat</option>
+      <option value="Punjab">📍 Punjab</option>
+      <option value="Rajasthan">📍 Rajasthan</option>
+      <option value="Delhi">📍 Delhi NCR</option>
+      <option value="Uttar Pradesh">📍 Uttar Pradesh</option>
+      <option value="Bihar">📍 Bihar</option>
+      <option value="Madhya Pradesh">📍 Madhya Pradesh</option>
+      <option value="Assam">📍 Assam (North East)</option>
+      <option value="Jammu Kashmir">📍 Jammu & Kashmir</option>
+      <option value="Odisha">📍 Odisha</option>
+    </select>
+  </div>
+
+  <!-- Content Grid -->
+  <div class="content-grid">
+    <!-- News Feed -->
+    <div>
+      <div class="section-title">
+        <span class="dot"></span>
+        <span id="sectionTitle">International Headlines</span>
+        <span style="font-size:12px;color:var(--subtext);font-weight:400;margin-left:8px" id="articleCount"></span>
+      </div>
+      <div class="news-grid" id="newsGrid">
+        <!-- Skeleton -->
+        ${Array(4).fill(`<div class="skeleton"><div class="skeleton-img"></div><div class="skeleton-line w40"></div><div class="skeleton-line w80"></div><div class="skeleton-line w60"></div></div>`).join('')}
+      </div>
+      <div id="loadMoreDiv" style="text-align:center;margin-top:24px;display:none">
+        <button class="btn-primary" style="max-width:200px" onclick="loadMore()">Load More News</button>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Trending Topics -->
+      <div class="widget">
+        <div class="widget-header"><span class="wh-icon">🔥</span> Trending Now</div>
+        <div id="trendingList">
+          <div style="padding:20px;text-align:center"><div class="spinner" style="width:24px;height:24px;margin:0 auto"></div></div>
+        </div>
+      </div>
+
+      <!-- 5-day Forecast -->
+      <div class="widget" id="forecastWidget" style="display:none">
+        <div class="widget-header"><span class="wh-icon">📅</span> 5-Day Forecast</div>
+        <div class="forecast-items" id="forecastItems"></div>
+      </div>
+
+      <!-- National Sources -->
+      <div class="widget">
+        <div class="widget-header"><span class="wh-icon">📡</span> Live Sources</div>
+        <div id="sourcesPanel" style="padding:12px 16px">
+          <div style="font-size:12px;color:var(--subtext);line-height:2">
+            <div>🌍 BBC · Reuters · AP · Al Jazeera</div>
+            <div>🌍 France24 · DW · TechCrunch · Wired</div>
+            <div>🇮🇳 TOI · NDTV · The Hindu · India Today</div>
+            <div>🇮🇳 HT · IE · ET · Business Standard</div>
+            <div>📰 Jagran · Amar Ujala · Navbharat Times</div>
+            <div>📍 Eenadu · Dinamalar · Mathrubhumi</div>
+            <div>📍 Prajavani · Lokmat · Punjab Kesari</div>
+            <div>⚽ Cricbuzz · ESPNcricinfo · Goal.com</div>
+            <div>⚽ Sky Sports · Formula1 · ATP Tour</div>
+            <div>⛅ OpenWeatherMap (current + forecast)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys quick-add -->
+      <div class="widget" style="background:linear-gradient(135deg,rgba(108,99,255,.1),rgba(0,212,170,.05));border-color:rgba(108,99,255,.3)">
+        <div class="widget-header" style="color:var(--primary)"><span class="wh-icon">🔑</span> Get More News</div>
+        <div style="padding:12px 16px;font-size:12px;color:var(--subtext);line-height:1.8">
+          Add free API keys to unlock more sources:<br>
+          <b style="color:var(--text)">• NewsAPI.org</b> — 100 req/day<br>
+          <b style="color:var(--text)">• The Guardian</b> — free open API<br>
+          <b style="color:var(--text)">• GNews.io</b> — 100 req/day<br>
+          <b style="color:var(--text)">• OpenWeatherMap</b> — live weather<br>
+          <b style="color:var(--text)">• NYT</b> — New York Times<br><br>
+          <button class="btn-primary" onclick="openModal()" style="width:100%;margin-top:4px">⚙️ Configure API Keys</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p>🌐 <strong>AI News Platform</strong> — Real-time news from 60+ sources worldwide</p>
+  <p style="margin-top:6px">International · National (India) · State · Sports · Weather · AI Summaries</p>
+  <p style="margin-top:6px;font-size:11px">Built with C++20 · PostgreSQL · Redis · Elasticsearch · Kafka · Flutter</p>
+</footer>
+
+<!-- ══ API KEY MODAL ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>⚙️ Configure API Keys</h2>
+    <div class="source-note">
+      <strong>No keys needed</strong> to see real news! 30+ free RSS feeds (BBC, Reuters, AP, NDTV, Cricbuzz…) load automatically. API keys just add <strong>more sources</strong>.
+    </div>
+    <p>All keys are stored locally in your browser only.</p>
+
+    <label>📰 NewsAPI.org key <a href="https://newsapi.org/register" target="_blank" style="color:var(--primary);font-size:11px">Get free →</a></label>
+    <input type="text" id="k_newsapi" placeholder="Paste your NewsAPI key here"/>
+
+    <label>🌍 The Guardian key <a href="https://bonobo.capi.guim.co.uk/register/developer" target="_blank" style="color:var(--primary);font-size:11px">Get free →</a></label>
+    <input type="text" id="k_guardian" placeholder="Paste your Guardian API key here"/>
+
+    <label>🌐 GNews.io key <a href="https://gnews.io" target="_blank" style="color:var(--primary);font-size:11px">Get free →</a></label>
+    <input type="text" id="k_gnews" placeholder="Paste your GNews key here"/>
+
+    <label>⛅ OpenWeatherMap key <a href="https://openweathermap.org/api" target="_blank" style="color:var(--primary);font-size:11px">Get free →</a></label>
+    <input type="text" id="k_owm" placeholder="Paste your OWM key here"/>
+
+    <label>📰 New York Times key <a href="https://developer.nytimes.com" target="_blank" style="color:var(--primary);font-size:11px">Get free →</a></label>
+    <input type="text" id="k_nyt" placeholder="Paste your NYT key here"/>
+
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveKeys()">💾 Save & Refresh</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+let KEYS = JSON.parse(localStorage.getItem('news_keys') || '{}');
+let currentScope    = 'international';
+let currentCategory = '';
+let allArticles     = [];
+let page            = 0;
+const PAGE_SIZE     = 12;
+
+/* ═══════════════════════════════════════════════
+   RSS → JSON proxy  (rss2json.com  — free)
+═══════════════════════════════════════════════ */
+const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
+
+/* ═══════════════════════════════════════════════
+   FEED DEFINITIONS  — organised by scope
+═══════════════════════════════════════════════ */
+const FEEDS = {
+  international:[
+    {name:'BBC World',   url:'https://feeds.bbci.co.uk/news/world/rss.xml',     cat:'world'},
+    {name:'BBC Tech',    url:'https://feeds.bbci.co.uk/news/technology/rss.xml',cat:'technology'},
+    {name:'BBC Science', url:'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml',cat:'science'},
+    {name:'BBC Business',url:'https://feeds.bbci.co.uk/news/business/rss.xml',  cat:'business'},
+    {name:'BBC Health',  url:'https://feeds.bbci.co.uk/news/health/rss.xml',    cat:'health'},
+    {name:'Reuters World',url:'https://feeds.reuters.com/reuters/worldNews',    cat:'world'},
+    {name:'Reuters Biz', url:'https://feeds.reuters.com/reuters/businessNews',  cat:'business'},
+    {name:'Reuters Tech',url:'https://feeds.reuters.com/reuters/technologyNews',cat:'technology'},
+    {name:'AP News',     url:'https://feeds.apnews.com/apf-topnews',            cat:'world'},
+    {name:'Al Jazeera',  url:'https://www.aljazeera.com/xml/rss/all.xml',       cat:'world'},
+    {name:'France24',    url:'https://www.france24.com/en/rss',                 cat:'world'},
+    {name:'TechCrunch',  url:'https://techcrunch.com/feed/',                    cat:'technology'},
+    {name:'The Verge',   url:'https://www.theverge.com/rss/index.xml',          cat:'technology'},
+    {name:'Wired',       url:'https://www.wired.com/feed/rss',                  cat:'technology'},
+    {name:'Ars Technica',url:'https://feeds.arstechnica.com/arstechnica/index', cat:'technology'},
+    {name:'NPR News',    url:'https://feeds.npr.org/1001/rss.xml',              cat:'world'},
+    {name:'Science Daily',url:'https://www.sciencedaily.com/rss/all.xml',       cat:'science'},
+  ],
+  national:[
+    {name:'Times of India',url:'https://timesofindia.indiatimes.com/rssfeedstopstories.cms',  cat:'world',    lang:'en'},
+    {name:'NDTV',          url:'https://feeds.feedburner.com/ndtvnews-top-stories',           cat:'world',    lang:'en'},
+    {name:'NDTV Tech',     url:'https://feeds.feedburner.com/NdtvNewsGadgets360-LatestNews', cat:'technology',lang:'en'},
+    {name:'The Hindu',     url:'https://www.thehindu.com/news/national/?service=rss',         cat:'world',    lang:'en'},
+    {name:'India Today',   url:'https://www.indiatoday.in/rss/home',                          cat:'world',    lang:'en'},
+    {name:'Hindustan Times',url:'https://www.hindustantimes.com/rss/topnews/rssfeed.xml',     cat:'world',    lang:'en'},
+    {name:'Indian Express',url:'https://indianexpress.com/feed/',                             cat:'world',    lang:'en'},
+    {name:'Economic Times',url:'https://economictimes.indiatimes.com/rssfeedstopstories.cms',cat:'business', lang:'en'},
+    {name:'Dainik Jagran', url:'https://www.jagran.com/rss/national.xml',                    cat:'world',    lang:'hi'},
+    {name:'Amar Ujala',    url:'https://www.amarujala.com/rss/breaking-news.xml',             cat:'world',    lang:'hi'},
+    {name:'Navbharat Times',url:'https://navbharattimes.indiatimes.com/rssfeedstopstories.cms',cat:'world',  lang:'hi'},
+  ],
+  state:{
+    'Maharashtra':[
+      {name:'Maharashtra Times',url:'https://maharashtratimes.com/rssfeedstopstories.cms',lang:'mr'},
+      {name:'HT Mumbai',        url:'https://www.hindustantimes.com/rss/mumbai/rssfeed.xml',lang:'en'},
+    ],
+    'Tamil Nadu':[
+      {name:'Dinamalar',   url:'https://www.dinamalar.com/rss/feeds.asp',lang:'ta'},
+      {name:'The Hindu Chennai',url:'https://www.thehindu.com/news/cities/chennai/?service=rss',lang:'en'},
+    ],
+    'Karnataka':[
+      {name:'The Hindu Bengaluru',url:'https://www.thehindu.com/news/cities/bangalore/?service=rss',lang:'en'},
+    ],
+    'Kerala':[
+      {name:'Mathrubhumi',url:'https://www.mathrubhumi.com/rss/news.xml',lang:'ml'},
+    ],
+    'West Bengal':[
+      {name:'The Telegraph',url:'https://www.telegraphindia.com/feeds/feeds.xml',lang:'en'},
+    ],
+    'Punjab':[
+      {name:'Tribune Chandigarh',url:'https://www.tribuneindia.com/rssfeed/default.rss',lang:'en'},
+    ],
+    'Delhi':[
+      {name:'HT Delhi',url:'https://www.hindustantimes.com/rss/delhi/rssfeed.xml',lang:'en'},
+    ],
+    'Andhra Pradesh':[
+      {name:'Sakshi Post',url:'https://english.sakshi.com/feed',lang:'en'},
+    ],
+    'Telangana':[
+      {name:'Eenadu',url:'https://www.eenadu.net/rss/telangana.xml',lang:'te'},
+    ],
+    'Assam':[
+      {name:'North East Now',url:'https://nenow.in/feed',lang:'en'},
+    ],
+    'Jammu Kashmir':[
+      {name:'Kashmir Monitor',url:'https://www.kashmirmonitor.in/feed',lang:'en'},
+    ],
+  },
+  sports:[
+    {name:'Cricbuzz',     url:'https://www.cricbuzz.com/rss/cricket-news',             cat:'cricket'},
+    {name:'ESPNcricinfo', url:'https://www.espncricinfo.com/rss/content/story/feeds/0.xml',cat:'cricket'},
+    {name:'NDTV Cricket', url:'https://sports.ndtv.com/rss/feeds/news/cricket.xml',    cat:'cricket'},
+    {name:'Sportskeeda',  url:'https://www.sportskeeda.com/feed/cricket',              cat:'cricket'},
+    {name:'Sky Sports',   url:'https://www.skysports.com/rss/12040',                  cat:'football'},
+    {name:'BBC Sport',    url:'https://feeds.bbci.co.uk/sport/rss.xml',               cat:'general'},
+    {name:'BBC Football', url:'https://feeds.bbci.co.uk/sport/football/rss.xml',      cat:'football'},
+    {name:'BBC Tennis',   url:'https://feeds.bbci.co.uk/sport/tennis/rss.xml',        cat:'tennis'},
+    {name:'Reuters Sports',url:'https://feeds.reuters.com/reuters/sportsNews',        cat:'general'},
+    {name:'AP Sports',    url:'https://feeds.apnews.com/apf-sports',                  cat:'general'},
+    {name:'NDTV Sports',  url:'https://sports.ndtv.com/rss/feeds/news/allsports.xml', cat:'general'},
+  ]
+};
+
+/* ═══════════════════════════════════════════════
+   CATEGORY COLOURS
+═══════════════════════════════════════════════ */
+const CAT_COLORS = {
+  world:'#4a90d9',technology:'#7b68ee',business:'#2ecc71',
+  politics:'#e74c3c',sports:'#f39c12',health:'#00bcd4',
+  science:'#9c27b0',entertainment:'#e91e63',cricket:'#e74c3c',
+  football:'#3498db',tennis:'#f1c40f',general:'#f39c12',
+};
+
+/* ═══════════════════════════════════════════════
+   WEATHER ICONS
+═══════════════════════════════════════════════ */
+const W_ICON = {
+  Clear:'☀️',Clouds:'☁️',Rain:'🌧️',Drizzle:'🌦️',
+  Thunderstorm:'⛈️',Snow:'❄️',Mist:'🌫️',Haze:'🌫️',
+  Fog:'🌫️',Smoke:'🌫️',Dust:'🌪️',Tornado:'🌪️',
+};
+const W_BG = {
+  Clear:'weather-bg-clear',Clouds:'weather-bg-cloud',
+  Rain:'weather-bg-rain',Drizzle:'weather-bg-rain',
+  Haze:'weather-bg-haze',Mist:'weather-bg-haze',
+};
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+window.onload = () => {
+  updateGreeting();
+  loadKeys();
+  fetchNews('international');
+  fetchWeather();
+  fetchTrending();
+  setInterval(updateGreeting, 60000);
+  // Set ticker items from a static list initially
+  populateTicker();
+};
+
+function updateGreeting(){
+  const now  = new Date();
+  const h    = now.getHours();
+  const g    = h<12?'☀️ Good Morning':h<17?'🌤️ Good Afternoon':h<20?'🌆 Good Evening':'🌙 Good Night';
+  document.getElementById('greetingTime').textContent = g;
+  document.getElementById('greetingText').textContent = 'Your Daily Brief';
+  document.getElementById('greetingDate').textContent =
+    now.toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) +
+    ' · ' + now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+/* ═══════════════════════════════════════════════
+   KEYS
+═══════════════════════════════════════════════ */
+function loadKeys(){
+  KEYS = JSON.parse(localStorage.getItem('news_keys') || '{}');
+  ['newsapi','guardian','gnews','owm','nyt'].forEach(k=>{
+    const el = document.getElementById('k_'+k);
+    if(el) el.value = KEYS[k] || '';
+  });
+}
+function saveKeys(){
+  ['newsapi','guardian','gnews','owm','nyt'].forEach(k=>{
+    const v = document.getElementById('k_'+k)?.value?.trim();
+    if(v) KEYS[k]=v; else delete KEYS[k];
+  });
+  localStorage.setItem('news_keys', JSON.stringify(KEYS));
+  closeModal();
+  fetchNews(currentScope);
+  fetchWeather();
+}
+function openModal(){ document.getElementById('modal').classList.add('open'); loadKeys(); }
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+document.getElementById('modal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeModal(); });
+
+/* ═══════════════════════════════════════════════
+   THEME
+═══════════════════════════════════════════════ */
+let darkMode = true;
+function toggleTheme(){
+  darkMode = !darkMode;
+  document.body.classList.toggle('light', !darkMode);
+  document.getElementById('theme-btn').textContent = darkMode ? '🌙' : '☀️';
+}
+
+/* ═══════════════════════════════════════════════
+   SCOPE & CATEGORY
+═══════════════════════════════════════════════ */
+function setScope(scope, el){
+  currentScope = scope;
+  currentCategory = '';
+  document.querySelectorAll('.scope-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('scoreTicker').style.display = scope==='sports' ? 'block' : 'none';
+  document.getElementById('statePanel').style.display  = scope==='state'  ? 'block' : 'none';
+  document.getElementById('catRow').style.display      = (scope==='state'||scope==='sports') ? 'none' : 'flex';
+
+  const titles = {
+    international:'International Headlines',national:'India National News',
+    state:'State News',sports:'Sports News',
+    technology:'Technology News',business:'Business & Markets',
+    science:'Science & Research',health:'Health & Wellness',
+  };
+  document.getElementById('sectionTitle').textContent = titles[scope] || 'Latest News';
+
+  if(scope==='state'){
+    fetchStateNews(document.getElementById('stateSelect').value);
+  } else if(['technology','business','science','health'].includes(scope)){
+    currentScope='international';
+    currentCategory=scope;
+    fetchNews('international', scope);
+  } else {
+    fetchNews(scope);
+  }
+}
+
+function setCat(cat, el){
+  currentCategory = cat;
+  document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  if(el.style['--c']) el.style.setProperty('--cc', el.style['--c']);
+  fetchNews(currentScope, cat);
+}
+
+/* ═══════════════════════════════════════════════
+   FETCH NEWS — RSS via rss2json proxy
+═══════════════════════════════════════════════ */
+async function fetchNews(scope='international', category=''){
+  showSkeleton();
+  allArticles = [];
+  page = 0;
+  let feeds = [];
+
+  if(scope==='state') return;
+  if(scope==='sports'){
+    feeds = FEEDS.sports;
+  } else if(FEEDS[scope]){
+    feeds = category
+      ? FEEDS[scope].filter(f=>!f.cat || f.cat===category)
+      : FEEDS[scope];
+    if(feeds.length===0) feeds = FEEDS[scope];
+  }
+
+  // Also add API-based sources
+  const apiArticles = await fetchAPIArticles(scope, category);
+
+  // Fetch RSS feeds (up to 6 simultaneously to avoid rate limits)
+  const subset = feeds.slice(0,6);
+  const promises = subset.map(f=>fetchRSS(f));
+  const results  = await Promise.allSettled(promises);
+
+  results.forEach(r=>{ if(r.status==='fulfilled') allArticles.push(...r.value); });
+  allArticles.push(...apiArticles);
+
+  // Shuffle + deduplicate by URL
+  const seen = new Set();
+  allArticles = allArticles.filter(a=>{
+    if(!a.url||seen.has(a.url)) return false;
+    seen.add(a.url); return true;
+  });
+  allArticles.sort(()=>Math.random()-.5); // light shuffle for variety
+
+  document.getElementById('articleCount').textContent = `${allArticles.length} articles`;
+  renderNews();
+  populateTicker(allArticles.slice(0,10));
+}
+
+async function fetchRSS(feed){
+  try{
+    const url = RSS2JSON + encodeURIComponent(feed.url) + '&count=10';
+    const r   = await fetch(url, {signal: AbortSignal.timeout(8000)});
+    if(!r.ok) return [];
+    const d = await r.json();
+    if(d.status!=='ok' || !d.items) return [];
+    return d.items.map(item=>({
+      id:         btoa(item.link||Math.random()),
+      title:      item.title || '',
+      excerpt:    stripHTML(item.description || item.content || '').slice(0,200),
+      url:        item.link || '',
+      image:      item.thumbnail || item.enclosure?.link || extractImg(item.description) || '',
+      publisher:  feed.name,
+      category:   feed.cat || 'world',
+      language:   feed.lang || 'en',
+      state:      feed.state || '',
+      scope:      feed.scope || 'international',
+      published:  item.pubDate || '',
+      aiSummary:  '',
+      reading:    Math.ceil((item.content||'').split(' ').length/200)||2,
+    }));
+  }catch(e){ return []; }
+}
+
+/* Key-based APIs */
+async function fetchAPIArticles(scope, category){
+  const articles = [];
+  // GNews
+  if(KEYS.gnews){
+    const country = scope==='national'?'in':'us';
+    const topic   = category||'general';
+    try{
+      const r = await fetch(
+        `https://gnews.io/api/v4/top-headlines?topic=${topic}&country=${country}&max=10&lang=en&apikey=${KEYS.gnews}`,
+        {signal:AbortSignal.timeout(6000)});
+      if(r.ok){
+        const d = await r.json();
+        (d.articles||[]).forEach(a=>articles.push({
+          id:btoa(a.url),title:a.title,excerpt:a.description,url:a.url,
+          image:a.image,publisher:a.source?.name||'GNews',
+          category:category||'world',language:'en',
+          country:country==='in'?'IN':'US',
+          scope:scope==='national'?'national':'international',
+          published:a.publishedAt,aiSummary:'',reading:3,
+        }));
+      }
+    }catch(e){}
+  }
+  // Guardian
+  if(KEYS.guardian && scope!=='national'){
+    const secMap={technology:'technology',business:'business',sports:'sport',science:'science',health:'society'};
+    const sec = secMap[category]||'news';
+    try{
+      const r = await fetch(
+        `https://content.guardianapis.com/search?section=${sec}&page-size=10&show-fields=trailText,thumbnail,byline&order-by=newest&api-key=${KEYS.guardian}`,
+        {signal:AbortSignal.timeout(6000)});
+      if(r.ok){
+        const d = await r.json();
+        (d.response?.results||[]).forEach(a=>articles.push({
+          id:btoa(a.id),title:a.webTitle,
+          excerpt:a.fields?.trailText||'',url:a.webUrl,
+          image:a.fields?.thumbnail||'',
+          publisher:'The Guardian',category:category||'world',language:'en',
+          scope:'international',published:a.webPublicationDate,aiSummary:'',reading:4,
+        }));
+      }
+    }catch(e){}
+  }
+  return articles;
+}
+
+async function fetchStateNews(state){
+  showSkeleton();
+  allArticles = [];
+  page = 0;
+  const feeds = FEEDS.state[state] || [];
+  if(feeds.length===0){
+    // Fallback: national feeds filtered to state
+    document.getElementById('newsGrid').innerHTML =
+      `<div style="padding:40px;text-align:center;color:var(--subtext)">📍 Showing national India news — dedicated ${state} RSS feed coming soon<br><br></div>`;
+    await fetchNews('national');
+    return;
+  }
+  const promises = feeds.map(f=>fetchRSS({...f, state}));
+  const results  = await Promise.allSettled(promises);
+  results.forEach(r=>{ if(r.status==='fulfilled') allArticles.push(...r.value); });
+  document.getElementById('articleCount').textContent = `${allArticles.length} articles from ${state}`;
+  renderNews();
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER ARTICLES
+═══════════════════════════════════════════════ */
+function renderNews(append=false){
+  const grid    = document.getElementById('newsGrid');
+  const chunk   = allArticles.slice(page*PAGE_SIZE, (page+1)*PAGE_SIZE);
+  if(!append) grid.innerHTML = '';
+
+  if(allArticles.length===0){
+    grid.innerHTML = `
+      <div style="padding:60px;text-align:center;color:var(--subtext)">
+        <div style="font-size:48px;margin-bottom:16px">📡</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px">Connecting to news sources…</div>
+        <div>RSS feeds may take a moment to load. If this persists, add API keys for instant access.</div>
+        <button class="btn-primary" style="margin-top:20px;max-width:200px" onclick="fetchNews(currentScope,currentCategory)">🔄 Retry</button>
+      </div>`;
+    return;
+  }
+
+  chunk.forEach((a,i)=>{
+    const isFirst = (i===0 && page===0 && !append);
+    const color = CAT_COLORS[a.category] || 'var(--primary)';
+    const scopeLabel = a.scope==='national'?'🇮🇳 India':a.scope==='state'?`📍 ${a.state||'State'}`:'';
+    const timeAgo = relativeTime(a.published);
+
+    const card = document.createElement('div');
+    card.className = 'nc' + (isFirst?' featured':'');
+    card.style.animationDelay = (i*50)+'ms';
+    card.onclick = ()=>openArticle(a);
+
+    card.innerHTML = `
+      ${a.image?`
+      <div class="nc-img">
+        <img src="${escHtml(a.image)}" alt="${escHtml(a.title)}"
+             onerror="this.parentElement.style.display='none'" loading="lazy"/>
+        <div class="overlay"></div>
+        <span class="nc-badge" style="background:${color}">${escHtml(a.category.toUpperCase())}</span>
+        ${scopeLabel?`<span class="nc-scope">${scopeLabel}</span>`:''}
+      </div>`:''}
+      <div class="nc-body">
+        <div class="nc-pub">
+          <span class="nc-pub-name">${escHtml(a.publisher)}</span>
+          ${a.language&&a.language!=='en'?`<span style="font-size:10px;padding:2px 6px;background:rgba(255,255,255,.05);border-radius:8px;color:var(--subtext)">${a.language.toUpperCase()}</span>`:''}
+          <span class="nc-pub-time">${timeAgo}</span>
+        </div>
+        <div class="nc-title">${escHtml(a.title)}</div>
+        ${a.excerpt?`<div class="nc-ai"><span class="ai-icon">✦</span>${escHtml(a.excerpt)}</div>`:''}
+        <div class="nc-footer">
+          <div class="nc-read">🕐 ${a.reading||2} min read</div>
+          <div class="nc-actions">
+            <button class="nc-btn" title="Like" onclick="event.stopPropagation();toggleLike(this)">🤍</button>
+            <button class="nc-btn" title="Bookmark" onclick="event.stopPropagation();toggleBookmark(this)">🔖</button>
+            <button class="nc-btn" title="Share" onclick="event.stopPropagation();shareArticle('${escHtml(a.url)}','${escHtml(a.title)}')">📤</button>
+            <button class="nc-btn" title="Listen" onclick="event.stopPropagation();speakArticle('${escHtml(a.title)}. ${escHtml(a.excerpt)}')">🎧</button>
+          </div>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  const hasMore = (page+1)*PAGE_SIZE < allArticles.length;
+  document.getElementById('loadMoreDiv').style.display = hasMore ? 'block' : 'none';
+}
+
+function loadMore(){ page++; renderNews(true); }
+
+function openArticle(a){
+  window.open(a.url,'_blank','noopener');
+}
+
+/* ═══════════════════════════════════════════════
+   INTERACTIONS
+═══════════════════════════════════════════════ */
+function toggleLike(btn){
+  const on = btn.textContent==='❤️';
+  btn.textContent = on?'🤍':'❤️';
+  btn.classList.toggle('liked',!on);
+}
+function toggleBookmark(btn){
+  const on = btn.textContent==='🔖';
+  btn.textContent = on?'🟡':'🔖';
+  btn.classList.toggle('bookmarked',!on);
+}
+function shareArticle(url, title){
+  if(navigator.share) navigator.share({title,url});
+  else { navigator.clipboard.writeText(url); alert('Link copied!'); }
+}
+function speakArticle(text){
+  if(!window.speechSynthesis){ alert('TTS not supported in this browser'); return; }
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='en-IN'; u.rate=0.9;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+/* ═══════════════════════════════════════════════
+   WEATHER
+═══════════════════════════════════════════════ */
+async function fetchWeather(){
+  if(!KEYS.owm) return;
+  try{
+    // Try geolocation first
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        async pos=>{ await loadWeather(pos.coords.latitude, pos.coords.longitude); },
+        async ()  =>{ await loadWeather(19.07,72.88,'Mumbai'); } // default: Mumbai
+      );
+    } else {
+      await loadWeather(19.07, 72.88, 'Mumbai');
+    }
+  }catch(e){}
+}
+
+async function loadWeather(lat, lon, cityHint=''){
+  try{
+    const r = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${KEYS.owm}`,
+      {signal:AbortSignal.timeout(6000)});
+    if(!r.ok) return;
+    const d = await r.json();
+    renderWeather(d);
+
+    // Forecast
+    const r2 = await fetch(
+      `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&cnt=40&appid=${KEYS.owm}`,
+      {signal:AbortSignal.timeout(6000)});
+    if(r2.ok){ const d2=await r2.json(); renderForecast(d2); }
+  }catch(e){}
+}
+
+function renderWeather(d){
+  const card = document.getElementById('weatherCard');
+  const cond  = d.weather[0].main;
+  const icon  = W_ICON[cond] || '🌤️';
+  const bgCls = W_BG[cond] || 'weather-bg-default';
+  card.className = `weather-card ${bgCls}`;
+  card.innerHTML = `
+    <div class="weather-city">📍 ${d.name}, ${d.sys.country}</div>
+    <div>
+      <div class="weather-temp">${Math.round(d.main.temp)}°C</div>
+      <div class="weather-desc">${d.weather[0].description}</div>
+    </div>
+    <div class="weather-stats">
+      <div class="w-stat">💧 ${d.main.humidity}%</div>
+      <div class="w-stat">🌬️ ${Math.round(d.wind.speed)} m/s</div>
+      <div class="w-stat">👁️ ${Math.round((d.visibility||0)/1000)} km</div>
+    </div>
+    <div class="weather-icon">${icon}</div>
+  `;
+}
+
+function renderForecast(d){
+  const widget = document.getElementById('forecastWidget');
+  const items  = document.getElementById('forecastItems');
+  widget.style.display = 'block';
+  const days = {};
+  d.list.forEach(slot=>{
+    const day = new Date(slot.dt*1000).toLocaleDateString('en-IN',{weekday:'short'});
+    if(!days[day]){ days[day]=slot; }
+  });
+  items.innerHTML = Object.entries(days).slice(0,5).map(([day,slot])=>`
+    <div class="forecast-slot">
+      <div class="fc-day">${day}</div>
+      <div class="fc-icon">${W_ICON[slot.weather[0].main]||'🌤️'}</div>
+      <div class="fc-temp">${Math.round(slot.main.temp)}°</div>
+      <div class="fc-rain">${slot.rain?.['3h']?Math.round(slot.rain['3h'])+' mm':''}</div>
+    </div>
+  `).join('');
+}
+
+/* ═══════════════════════════════════════════════
+   TRENDING (local computation)
+═══════════════════════════════════════════════ */
+const STATIC_TRENDING = [
+  {kw:'IPL 2026',count:'28K searches',badge:'hot'},
+  {kw:'Budget 2026',count:'22K searches',badge:'hot'},
+  {kw:'AI News',count:'18K searches',badge:'up'},
+  {kw:'Wimbledon',count:'15K searches',badge:'up'},
+  {kw:'Formula 1',count:'12K searches',badge:'up'},
+  {kw:'Monsoon India',count:'10K searches',badge:'up'},
+  {kw:'Stock Market',count:'9K searches',badge:'up'},
+  {kw:'G7 Summit',count:'8K searches',badge:'up'},
+];
+
+function fetchTrending(){
+  const list = document.getElementById('trendingList');
+  list.innerHTML = STATIC_TRENDING.map((t,i)=>`
+    <div class="trend-item" onclick="handleSearch('${t.kw}')">
+      <div class="trend-num ${i<3?'top':''}">${i+1}</div>
+      <div class="trend-text">
+        <div class="trend-kw">${t.kw}</div>
+        <div class="trend-count">${t.count}</div>
+      </div>
+      <span class="trend-badge ${t.badge==='hot'?'trend-hot':'trend-up'}">${t.badge==='hot'?'🔥 Hot':'📈'}</span>
+    </div>
+  `).join('');
+}
+
+/* ═══════════════════════════════════════════════
+   SEARCH
+═══════════════════════════════════════════════ */
+let searchTimer;
+function handleSearch(q){
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>{
+    if(!q || q.length<2) return;
+    const lq = q.toLowerCase();
+    const filtered = allArticles.filter(a=>
+      a.title.toLowerCase().includes(lq) ||
+      (a.excerpt||'').toLowerCase().includes(lq)
+    );
+    if(filtered.length===0) return;
+    const grid = document.getElementById('newsGrid');
+    grid.innerHTML='';
+    const saved = allArticles;
+    allArticles = filtered;
+    document.getElementById('sectionTitle').textContent = `Search: "${q}"`;
+    document.getElementById('articleCount').textContent = `${filtered.length} results`;
+    renderNews();
+    allArticles = saved;
+  }, 400);
+}
+
+/* ═══════════════════════════════════════════════
+   BREAKING TICKER
+═══════════════════════════════════════════════ */
+function populateTicker(articles){
+  const inner = document.getElementById('tickerInner');
+  const defaults = [
+    '🔴 Live: Real news from BBC, Reuters, AP, NDTV, The Hindu and 60+ sources',
+    '🇮🇳 India: Coverage across all 29 states in English, Hindi & regional languages',
+    '⚽ Sports: Cricket · Football · F1 · Tennis · NBA · Olympics · Badminton',
+    '⛅ Weather: Add OpenWeatherMap key for live weather + 5-day forecast',
+    '🤖 AI: GPT-4o powered summaries, chat, and audio news',
+  ];
+  const headlines = articles?.length
+    ? articles.map(a=>a.title)
+    : defaults;
+  // Double for seamless loop
+  const doubled = [...headlines, ...headlines];
+  inner.innerHTML = doubled.map(h=>`<span class="ticker-item">${escHtml(h)}</span><span class="ticker-item" style="color:rgba(255,255,255,.5)">•</span>`).join('');
+}
+
+/* ═══════════════════════════════════════════════
+   SKELETON
+═══════════════════════════════════════════════ */
+function showSkeleton(){
+  document.getElementById('newsGrid').innerHTML = Array(6).fill(`
+    <div class="skeleton">
+      <div class="skeleton-img"></div>
+      <div class="skeleton-line w40"></div>
+      <div class="skeleton-line w80"></div>
+      <div class="skeleton-line w60"></div>
+    </div>`).join('');
+  document.getElementById('loadMoreDiv').style.display='none';
+}
+
+/* ═══════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════ */
+function stripHTML(s){ const d=document.createElement('div');d.innerHTML=s;return d.textContent||''; }
+function escHtml(s){ if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function extractImg(html){
+  if(!html)return'';
+  const m=html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return m?m[1]:'';
+}
+function relativeTime(dateStr){
+  if(!dateStr)return'';
+  try{
+    const d = new Date(dateStr);
+    const s = Math.floor((Date.now()-d)/1000);
+    if(s<60)   return 'just now';
+    if(s<3600) return Math.floor(s/60)+'m ago';
+    if(s<86400)return Math.floor(s/3600)+'h ago';
+    return Math.floor(s/86400)+'d ago';
+  }catch(e){return'';}
+}
+</script>
+</body>
+</html>
