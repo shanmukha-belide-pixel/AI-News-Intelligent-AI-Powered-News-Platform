@@ -1833,6 +1833,25 @@ async function setLanguage(langCode, el) {
   
   if (activeArticle) {
     preTranslateSpeech();
+    
+    // Translate open drawer header title
+    const titleEl = document.getElementById('dTitle');
+    if (langCode === 'en') {
+      titleEl.textContent = activeArticle.title;
+    } else {
+      titleEl.textContent = 'Translating...';
+      const trans = await fetchTranslation(activeArticle.title, 'en', langCode);
+      titleEl.textContent = trans;
+    }
+    
+    // Refresh drawer active tab content in new language
+    const activeTab = document.querySelector('.drawer-tab.active');
+    if (activeTab) {
+      let type = 'summary';
+      if (activeTab.textContent.includes('Key')) type = 'bullet';
+      if (activeTab.textContent.includes('Quiz')) type = 'quiz';
+      setDrawerTab(type, activeTab);
+    }
   }
 }
 
@@ -1955,7 +1974,16 @@ async function preTranslateSpeech() {
 // ═══════════════════════════════════════════════
 async function openDrawer(article) {
   activeArticle = article;
-  document.getElementById('dTitle').textContent = article.title;
+  
+  const titleEl = document.getElementById('dTitle');
+  if (currentLanguage === 'en') {
+    titleEl.textContent = article.title;
+  } else {
+    titleEl.textContent = 'Translating...';
+    const trans = await fetchTranslation(article.title, 'en', currentLanguage);
+    titleEl.textContent = trans;
+  }
+  
   document.getElementById('dPub').textContent = article.publisher;
   document.getElementById('dTime').textContent = timeSince(article.published);
   
