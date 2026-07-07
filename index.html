@@ -1770,6 +1770,8 @@ function renderArticles() {
     `;
     grid.appendChild(card);
   });
+
+  translatePageContent();
 }
 
 function showSkeletons() {
@@ -1803,6 +1805,8 @@ function setScope(scope, el) {
   };
   document.getElementById('sectionTitle').textContent = sectionTitleMap[scope] || 'Latest News';
 
+  translateHeaders();
+
   if (scope === 'state') {
     fetchStateNews(document.getElementById('stateSelect').value);
   } else {
@@ -1823,38 +1827,76 @@ async function setLanguage(langCode, el) {
   document.querySelectorAll('.lang-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   
-  // Show visual language feedback
   console.log(`Switched view language to: ${langCode}`);
   
-  // Translate main screen cards titles dynamically
+  translatePageContent();
+}
+
+async function translatePageContent() {
+  if (allArticles.length === 0) return;
+
   const titles = document.querySelectorAll('.nc-title');
   titles.forEach(async (el, index) => {
     if (index < allArticles.length) {
       const art = allArticles[index];
-      if (langCode === 'en') {
+      if (currentLanguage === 'en') {
         el.textContent = art.title;
       } else {
         el.textContent = 'Translating...';
-        const trans = await fetchTranslation(art.title, 'en', langCode);
+        const trans = await fetchTranslation(art.title, 'en', currentLanguage);
         el.textContent = trans;
       }
     }
   });
 
-  // Translate main screen cards AI summaries dynamically
   const summaries = document.querySelectorAll('.nc-ai');
   summaries.forEach(async (el, index) => {
     if (index < allArticles.length) {
       const art = allArticles[index];
-      if (langCode === 'en') {
+      if (currentLanguage === 'en') {
         el.innerHTML = `<span class="ai-icon">✦ AI Summary</span> ${art.excerpt}`;
       } else {
         el.innerHTML = `<span class="ai-icon">✦ AI Summary</span> Translating...`;
-        const trans = await fetchTranslation(art.excerpt, 'en', langCode);
+        const trans = await fetchTranslation(art.excerpt, 'en', currentLanguage);
         el.innerHTML = `<span class="ai-icon">✦ AI Summary</span> ${trans}`;
       }
     }
   });
+
+  translateHeaders();
+}
+
+async function translateHeaders() {
+  const sectionTitleEl = document.getElementById('sectionTitle');
+  const greetingEl = document.querySelector('.greeting-text');
+  const searchInputEl = document.getElementById('searchInput');
+
+  if (currentLanguage === 'en') {
+    const sectionTitleMap = {
+      international: 'Latest International Headlines',
+      national: 'Latest Indian National News',
+      state: 'State Local Coverage',
+      sports: 'Live Sports Headlines'
+    };
+    if (sectionTitleEl) sectionTitleEl.textContent = sectionTitleMap[currentScope] || 'Latest News';
+    if (greetingEl) greetingEl.textContent = "AI Intelligent Dashboard";
+    if (searchInputEl) searchInputEl.placeholder = "Search news by topic...";
+    return;
+  }
+
+  if (sectionTitleEl) {
+    const rawText = sectionTitleEl.textContent;
+    if (rawText !== 'Translating...') {
+      sectionTitleEl.textContent = 'Translating...';
+      sectionTitleEl.textContent = await fetchTranslation(rawText, 'en', currentLanguage);
+    }
+  }
+  if (greetingEl) {
+    greetingEl.textContent = await fetchTranslation("AI Intelligent Dashboard", 'en', currentLanguage);
+  }
+  if (searchInputEl) {
+    searchInputEl.placeholder = await fetchTranslation("Search news by topic...", 'en', currentLanguage);
+  }
 }
 
 // ═══════════════════════════════════════════════
