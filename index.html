@@ -2038,7 +2038,7 @@ function openOriginalLink() {
 // ═══════════════════════════════════════════════
 // TEXT TO SPEECH (TTS) AUDIO PLAYER
 // ═══════════════════════════════════════════════
-function speakActiveArticle() {
+async function speakActiveArticle() {
   if (!window.speechSynthesis) {
     alert('Audio speech synthesis is not supported on this browser.');
     return;
@@ -2048,27 +2048,43 @@ function speakActiveArticle() {
   const player = document.getElementById('audioPlayer');
   player.classList.add('visible');
   
-  document.getElementById('audioTrackTitle').textContent = activeArticle.title;
+  let speakTitle = activeArticle.title;
+  let speakExcerpt = activeArticle.excerpt;
+  
+  if (currentLanguage !== 'en') {
+    document.getElementById('audioTrackTitle').textContent = 'Translating audio...';
+    speakTitle = await fetchTranslation(activeArticle.title, 'en', currentLanguage);
+    speakExcerpt = await fetchTranslation(activeArticle.excerpt, 'en', currentLanguage);
+  }
+  
+  document.getElementById('audioTrackTitle').textContent = speakTitle;
   document.getElementById('audioTrackPub').textContent = activeArticle.publisher;
   
   // Setup Speech Utterance
   speechSynthesis.cancel();
   
-  const textToRead = `${activeArticle.title}. ${activeArticle.excerpt}`;
+  const textToRead = `${speakTitle}. ${speakExcerpt}`;
   ttsUtterance = new SpeechSynthesisUtterance(textToRead);
   
   // Try to find matching voice for target language
   const voices = speechSynthesis.getVoices();
   const langMatch = {
-    'hi': 'hi-IN', 'ta': 'ta-IN', 'te': 'te-IN', 'kn': 'kn-IN', 'ml': 'ml-IN', 'gu': 'gu-IN', 'bn': 'bn-IN'
+    'as': 'as-IN', 'bn': 'bn-IN', 'doi': 'doi-IN', 'gu': 'gu-IN', 'hi': 'hi-IN',
+    'kn': 'kn-IN', 'ks': 'ks-IN', 'kok': 'kok-IN', 'mai': 'mai-IN', 'ml': 'ml-IN',
+    'mni': 'mni-IN', 'mr': 'mr-IN', 'ne': 'ne-IN', 'or': 'or-IN', 'pa': 'pa-IN',
+    'sa': 'sa-IN', 'sat': 'sat-IN', 'sd': 'sd-IN', 'ta': 'ta-IN', 'te': 'te-IN', 'ur': 'ur-IN'
   };
   
   const targetCode = langMatch[currentLanguage] || 'en-US';
-  const voice = voices.find(v => v.lang.startsWith(targetCode));
+  let voice = voices.find(v => v.lang.replace('_', '-').startsWith(targetCode));
+  if (!voice) {
+    voice = voices.find(v => v.lang.startsWith(currentLanguage));
+  }
+  
   if (voice) {
     ttsUtterance.voice = voice;
   }
-  
+  ttsUtterance.lang = targetCode;
   ttsUtterance.rate = audioSpeed;
   
   ttsUtterance.onend = () => {
