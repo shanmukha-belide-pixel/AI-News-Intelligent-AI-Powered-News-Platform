@@ -1012,10 +1012,11 @@ header {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #ffffff !important;
 }
 .audio-pub {
   font-size: 11px;
-  color: var(--subtext);
+  color: rgba(255, 255, 255, 0.6) !important;
 }
 .audio-speed-btn {
   font-size: 11px;
@@ -2175,6 +2176,7 @@ function speakActiveArticle() {
   
   const textToRead = `${title}. ${excerpt}`;
   ttsUtterance = new SpeechSynthesisUtterance(textToRead);
+  window.speechUtterance = ttsUtterance;
   
   // Try to find matching voice for target language
   const voices = speechSynthesis.getVoices();
@@ -2227,19 +2229,10 @@ function speakActiveArticle() {
 
 function toggleAudio() {
   if (audioIsPlaying) {
-    speechSynthesis.pause();
-    document.getElementById('audioPlayBtn').textContent = '▶';
-    document.getElementById('audioWave').classList.remove('playing');
-    audioIsPlaying = false;
+    speechSynthesis.cancel();
+    stopAudioState();
   } else {
-    if (speechSynthesis.paused) {
-      speechSynthesis.resume();
-    } else {
-      speakActiveArticle();
-    }
-    document.getElementById('audioPlayBtn').textContent = '⏸';
-    document.getElementById('audioWave').classList.add('playing');
-    audioIsPlaying = true;
+    speakActiveArticle();
   }
 }
 
