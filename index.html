@@ -1840,6 +1840,21 @@ async function setLanguage(langCode, el) {
       }
     }
   });
+
+  // Translate main screen cards AI summaries dynamically
+  const summaries = document.querySelectorAll('.nc-ai');
+  summaries.forEach(async (el, index) => {
+    if (index < allArticles.length) {
+      const art = allArticles[index];
+      if (langCode === 'en') {
+        el.innerHTML = `<span class="ai-icon">✦ AI Summary</span> ${art.excerpt}`;
+      } else {
+        el.innerHTML = `<span class="ai-icon">✦ AI Summary</span> Translating...`;
+        const trans = await fetchTranslation(art.excerpt, 'en', langCode);
+        el.innerHTML = `<span class="ai-icon">✦ AI Summary</span> ${trans}`;
+      }
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════
