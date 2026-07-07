@@ -1871,31 +1871,32 @@ async function translateHeaders() {
   const greetingEl = document.querySelector('.greeting-text');
   const searchInputEl = document.getElementById('searchInput');
 
+  const sectionTitleMap = {
+    international: 'Latest International Headlines',
+    national: 'Latest Indian National News',
+    state: 'State Local Coverage',
+    sports: 'Live Sports Headlines'
+  };
+  const origTitle = sectionTitleMap[currentScope] || 'Latest News';
+  const origGreeting = "AI Intelligent Dashboard";
+  const origSearch = "Search news by topic...";
+
   if (currentLanguage === 'en') {
-    const sectionTitleMap = {
-      international: 'Latest International Headlines',
-      national: 'Latest Indian National News',
-      state: 'State Local Coverage',
-      sports: 'Live Sports Headlines'
-    };
-    if (sectionTitleEl) sectionTitleEl.textContent = sectionTitleMap[currentScope] || 'Latest News';
-    if (greetingEl) greetingEl.textContent = "AI Intelligent Dashboard";
-    if (searchInputEl) searchInputEl.placeholder = "Search news by topic...";
+    if (sectionTitleEl) sectionTitleEl.textContent = origTitle;
+    if (greetingEl) greetingEl.textContent = origGreeting;
+    if (searchInputEl) searchInputEl.placeholder = origSearch;
     return;
   }
 
   if (sectionTitleEl) {
-    const rawText = sectionTitleEl.textContent;
-    if (rawText !== 'Translating...') {
-      sectionTitleEl.textContent = 'Translating...';
-      sectionTitleEl.textContent = await fetchTranslation(rawText, 'en', currentLanguage);
-    }
+    sectionTitleEl.textContent = 'Translating...';
+    sectionTitleEl.textContent = await fetchTranslation(origTitle, 'en', currentLanguage);
   }
   if (greetingEl) {
-    greetingEl.textContent = await fetchTranslation("AI Intelligent Dashboard", 'en', currentLanguage);
+    greetingEl.textContent = await fetchTranslation(origGreeting, 'en', currentLanguage);
   }
   if (searchInputEl) {
-    searchInputEl.placeholder = await fetchTranslation("Search news by topic...", 'en', currentLanguage);
+    searchInputEl.placeholder = await fetchTranslation(origSearch, 'en', currentLanguage);
   }
 }
 
