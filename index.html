@@ -1888,37 +1888,69 @@ async function setDrawerTab(type, el) {
   box.innerHTML = `<div style="text-align:center;padding:20px;"><div class="spinner" style="width:20px;height:20px;"></div><small>AI Reasoning...</small></div>`;
   
   const headline = activeArticle.title;
-  const context = activeArticle.excerpt;
   
   if (type === 'summary') {
-    // Generate intelligent client-side summary & load details
-    const summary = `Headline focuses on: "${headline}". Analysis indicates significant public interest and immediate policy, societal, or market impact.`;
+    let titleText = "AI Reasoning Summary";
+    let summaryText = `Headline focuses on: "${headline}". Analysis indicates significant public interest and immediate policy, societal, or market impact.`;
+    let sentimentText = "Sentiment: Neutral to Positive";
+    
+    if (currentLanguage !== 'en') {
+      titleText = await fetchTranslation(titleText, 'en', currentLanguage);
+      summaryText = await fetchTranslation(summaryText, 'en', currentLanguage);
+      sentimentText = await fetchTranslation(sentimentText, 'en', currentLanguage);
+    }
+    
     box.innerHTML = `
-      <div style="font-size: 15px; font-weight:600; margin-bottom:12px; color: var(--primary);">🤖 AI Reasoning Summary</div>
-      <p style="font-size: 14px; color: var(--text); line-height: 1.6;">${summary}</p>
-      <div style="margin-top:16px; font-size:12px; color: var(--accent); font-weight:600;">Sentiment: Neutral to Positive</div>
+      <div style="font-size: 15px; font-weight:600; margin-bottom:12px; color: var(--primary);">${titleText}</div>
+      <p style="font-size: 14px; color: var(--text); line-height: 1.6;">${summaryText}</p>
+      <div style="margin-top:16px; font-size:12px; color: var(--accent); font-weight:600;">${sentimentText}</div>
     `;
   } else if (type === 'bullet') {
+    let titleText = "Key Points & Impact";
+    let bullet1 = `Immediate Context: ${headline}`;
+    let bullet2 = "Why It Matters: Key stakeholders are monitoring events closely for long-term strategic adjustments.";
+    let bullet3 = "Societal Impact: Broad public engagement is expected across related economic, digital, or regional channels.";
+    
+    if (currentLanguage !== 'en') {
+      titleText = await fetchTranslation(titleText, 'en', currentLanguage);
+      bullet1 = await fetchTranslation(bullet1, 'en', currentLanguage);
+      bullet2 = await fetchTranslation(bullet2, 'en', currentLanguage);
+      bullet3 = await fetchTranslation(bullet3, 'en', currentLanguage);
+    }
+    
     box.innerHTML = `
-      <div style="font-size: 15px; font-weight:600; margin-bottom:12px; color: var(--primary);">⏳ Key Points & Impact</div>
+      <div style="font-size: 15px; font-weight:600; margin-bottom:12px; color: var(--primary);">⏳ ${titleText}</div>
       <ul style="padding-left: 20px; font-size:13px; color: var(--text); line-height:1.8;">
-        <li><b>Immediate Context:</b> ${headline}</li>
-        <li><b>Why It Matters:</b> Key stakeholders are monitoring events closely for long-term strategic adjustments.</li>
-        <li><b>Societal Impact:</b> Broad public engagement is expected across related economic, digital, or regional channels.</li>
+        <li>${bullet1}</li>
+        <li>${bullet2}</li>
+        <li>${bullet3}</li>
       </ul>
     `;
   } else if (type === 'quiz') {
-    // Interactive Quiz builder
+    let questionText = "What is the primary focus of this article?";
+    let optionA = "General entertainment gossip";
+    let optionB = `${headline.slice(0, 45)}...`;
+    let optionC = "Unrelated international travel guide";
+    let explainText = "Correct! This corresponds exactly to the headline event discussed in this live bulletin.";
+    
+    if (currentLanguage !== 'en') {
+      questionText = await fetchTranslation(questionText, 'en', currentLanguage);
+      optionA = await fetchTranslation(optionA, 'en', currentLanguage);
+      optionB = await fetchTranslation(optionB, 'en', currentLanguage);
+      optionC = await fetchTranslation(optionC, 'en', currentLanguage);
+      explainText = await fetchTranslation(explainText, 'en', currentLanguage);
+    }
+    
     box.innerHTML = `
       <div class="quiz-box">
-        <div class="quiz-question">Q: What is the primary focus of this article?</div>
+        <div class="quiz-question">Q: ${questionText}</div>
         <div class="quiz-options">
-          <button class="quiz-option" onclick="checkQuiz(this, false)">A) General entertainment gossip</button>
-          <button class="quiz-option" onclick="checkQuiz(this, true)">B) ${headline.slice(0, 45)}...</button>
-          <button class="quiz-option" onclick="checkQuiz(this, false)">C) Unrelated international travel guide</button>
+          <button class="quiz-option" onclick="checkQuiz(this, false)">A) ${optionA}</button>
+          <button class="quiz-option" onclick="checkQuiz(this, true)">B) ${optionB}</button>
+          <button class="quiz-option" onclick="checkQuiz(this, false)">C) ${optionC}</button>
         </div>
         <div class="quiz-explanation" id="quizExplain" style="display:none">
-          <b>Explanation:</b> Correct! Option B corresponds exactly to the headline event discussed in this live bulletin.
+          <b>Explanation:</b> ${explainText}
         </div>
       </div>
     `;
