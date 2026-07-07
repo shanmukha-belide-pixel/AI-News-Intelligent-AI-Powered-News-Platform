@@ -1666,15 +1666,26 @@ async function fetchNews(scope = 'international', category = '') {
     if (feeds.length === 0) feeds = FEEDS[scope];
   }
   
-  const promises = feeds.slice(0, 5).map(f => fetchSingleFeed(f));
+  // Query all available feeds (removed slice(0,5)) to fetch all real news
+  const promises = feeds.map(f => fetchSingleFeed(f));
   const results = await Promise.allSettled(promises);
   
   results.forEach(r => {
     if (r.status === 'fulfilled') allArticles.push(...r.value);
   });
   
-  // Sort and display
-  allArticles.sort(() => Math.random() - 0.5);
+  // Sort descending by date (newest first) to prioritize today's news
+  allArticles.sort((a, b) => new Date(b.published || 0) - new Date(a.published || 0));
+  
+  // Filter for fresh news published within the last 48 hours
+  const cutoffTime = Date.now() - (48 * 60 * 60 * 1000);
+  const freshArticles = allArticles.filter(art => new Date(art.published || 0).getTime() > cutoffTime);
+  
+  // If we have enough fresh news, show only fresh news; otherwise fall back to all sorted articles
+  if (freshArticles.length >= 4) {
+    allArticles = freshArticles;
+  }
+  
   renderArticles();
   populateTicker(allArticles.slice(0, 10));
 }
@@ -1718,7 +1729,8 @@ async function fetchStateNews(state) {
     allArticles = getMockStateArticles(state);
   }
   
-  allArticles.sort(() => Math.random() - 0.5);
+  // Sort state news descending by date (newest first)
+  allArticles.sort((a, b) => new Date(b.published || 0) - new Date(a.published || 0));
   renderArticles();
 }
 
@@ -2160,37 +2172,22 @@ function openOriginalLink() {
 // ═══════════════════════════════════════════════
 // TEXT TO SPEECH (TTS) AUDIO PLAYER
 // ═══════════════════════════════════════════════
-async function speakActiveArticle() {
+function speakActiveArticle() {
   if (!window.speechSynthesis) {
     alert('Audio speech synthesis is not supported on this browser.');
     return;
   }
   
-  // 1. Immediately play silent sound to preserve the user gesture synchronously
-  speechSynthesis.speak(new SpeechSynthesisUtterance(""));
-  
   // Show floating bar
   const player = document.getElementById('audioPlayer');
   player.classList.add('visible');
   
-  document.getElementById('audioTrackTitle').textContent = 'Translating audio...';
-  document.getElementById('audioTrackPub').textContent = activeArticle.publisher;
+  // Read text directly from the active, translated DOM elements to ensure synchronous execution
+  const speakTitle = document.getElementById('dTitle').textContent.trim() || activeArticle.title;
+  const speakExcerpt = document.getElementById('aiBriefBox').textContent.trim() || activeArticle.excerpt;
   
-  // 2. Fetch fresh translation on the spot to ensure it updates instantly
-  let speakTitle = activeArticle.title;
-  let speakExcerpt = activeArticle.excerpt;
-  
-  if (currentLanguage !== 'en') {
-    try {
-      speakTitle = await fetchTranslation(activeArticle.title, 'en', currentLanguage);
-      speakExcerpt = await fetchTranslation(activeArticle.excerpt, 'en', currentLanguage);
-    } catch (err) {
-      console.error("Audio translation error:", err);
-    }
-  }
-  
-  // 3. Update the audio bar with the correct resolved text
   document.getElementById('audioTrackTitle').textContent = speakTitle;
+  document.getElementById('audioTrackPub').textContent = activeArticle.publisher;
   
   // Setup Speech Utterance - Cancel any active speaking first
   speechSynthesis.cancel();
