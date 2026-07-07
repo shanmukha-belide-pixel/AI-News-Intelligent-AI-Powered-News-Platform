@@ -1901,17 +1901,33 @@ async function translateHeaders() {
 }
 
 // ═══════════════════════════════════════════════
-// FREE MYMEMORY KEYLESS TRANSLATOR
+// FREE GOOGLE TRANSLATE KEYLESS TRANSLATOR
 // ═══════════════════════════════════════════════
 async function fetchTranslation(text, sourceLang = 'en', targetLang = 'hi') {
-  if (targetLang === 'en') return text;
+  if (targetLang === 'en' || !text) return text;
+  
+  const codeMapping = {
+    'as': 'as', 'bn': 'bn', 'doi': 'doi', 'gu': 'gu', 'hi': 'hi',
+    'kn': 'kn', 'ks': 'ks', 'kok': 'kok', 'mai': 'mai', 'ml': 'ml',
+    'mni': 'mni', 'mr': 'mr', 'ne': 'ne', 'or': 'or', 'pa': 'pa',
+    'sa': 'sa', 'sat': 'sat', 'sd': 'sd', 'ta': 'ta', 'te': 'te', 'ur': 'ur',
+    'brx': 'hi'
+  };
+  
+  const tl = codeMapping[targetLang] || targetLang;
+  
   try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`;
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`;
     const response = await fetch(url);
     if (!response.ok) return text;
     const json = await response.json();
-    return json.responseData?.translatedText || text;
+    
+    if (json && json[0]) {
+      return json[0].map(segment => segment[0] || '').join('');
+    }
+    return text;
   } catch (error) {
+    console.error('Translation error:', error);
     return text;
   }
 }
