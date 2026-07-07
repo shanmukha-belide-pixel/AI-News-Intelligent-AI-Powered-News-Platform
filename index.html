@@ -1454,141 +1454,74 @@ let ttsUtterance = null;
 let audioIsPlaying = false;
 let audioSpeed = 1.0;
 
-// RSS 2 JSON proxy endpoint — count=20 pulls the latest 20 articles per feed
-const PROXY = 'https://api.rss2json.com/v1/api.json?count=20&rss_url=';
+// RSS 2 JSON proxy — primary endpoint (rss_url must come LAST for correct routing)
+const PROXY    = 'https://api.rss2json.com/v1/api.json?count=20&api_key=&rss_url=';
+// Fallback: allorigins.win (passes raw XML, we parse it ourselves)
+const PROXY_AO = 'https://api.allorigins.win/get?url=';
 
-// Feeds Mapping
+// Feeds Mapping — using sources that work reliably with CORS proxies
 const FEEDS = {
   international: [
-    {name: 'BBC News', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', cat: 'world'},
-    {name: 'BBC Tech', url: 'https://feeds.bbci.co.uk/news/technology/rss.xml', cat: 'technology'},
-    {name: 'BBC Business', url: 'https://feeds.bbci.co.uk/news/business/rss.xml', cat: 'business'},
-    {name: 'BBC Politics', url: 'https://feeds.bbci.co.uk/news/politics/rss.xml', cat: 'politics'},
-    {name: 'BBC Health', url: 'https://feeds.bbci.co.uk/news/health/rss.xml', cat: 'health'},
-    {name: 'Reuters World', url: 'https://feeds.reuters.com/reuters/worldNews', cat: 'world'},
-    {name: 'TechCrunch', url: 'https://techcrunch.com/feed/', cat: 'technology'},
-    {name: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/index', cat: 'technology'},
-    {name: 'Nature Research', url: 'https://www.nature.com/nature.rss', cat: 'science'}
+    {name: 'Al Jazeera World',  url: 'https://www.aljazeera.com/xml/rss/all.xml',          cat: 'world'},
+    {name: 'The Guardian World',url: 'https://www.theguardian.com/world/rss',              cat: 'world'},
+    {name: 'The Guardian Tech', url: 'https://www.theguardian.com/technology/rss',         cat: 'technology'},
+    {name: 'The Guardian Biz',  url: 'https://www.theguardian.com/business/rss',           cat: 'business'},
+    {name: 'The Guardian Sci',  url: 'https://www.theguardian.com/science/rss',            cat: 'science'},
+    {name: 'Dev.to Tech',       url: 'https://dev.to/feed',                                cat: 'technology'},
+    {name: 'Hacker News',       url: 'https://hnrss.org/frontpage',                        cat: 'technology'},
+    {name: 'TechCrunch',        url: 'https://techcrunch.com/feed/',                       cat: 'technology'},
+    {name: 'NASA Science',      url: 'https://www.nasa.gov/rss/dyn/breaking_news.rss',     cat: 'science'},
+    {name: 'WHO Health',        url: 'https://www.who.int/feeds/entity/mediacentre/news/en/rss.xml', cat: 'health'}
   ],
   national: [
-    {name: 'Times of India', url: 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms', cat: 'world', lang: 'en'},
-    {name: 'NDTV News', url: 'https://feeds.feedburner.com/ndtvnews-top-stories', cat: 'world', lang: 'en'},
-    {name: 'The Hindu', url: 'https://www.thehindu.com/news/national/?service=rss', cat: 'world', lang: 'en'},
-    {name: 'Economic Times', url: 'https://economictimes.indiatimes.com/rssfeedstopstories.cms', cat: 'business', lang: 'en'},
-    {name: 'Dainik Jagran', url: 'https://www.jagran.com/rss/national.xml', cat: 'world', lang: 'hi'},
-    {name: 'Amar Ujala', url: 'https://www.amarujala.com/rss/breaking-news.xml', cat: 'world', lang: 'hi'}
+    {name: 'Times of India',  url: 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms', cat: 'world',    lang: 'en'},
+    {name: 'NDTV News',       url: 'https://feeds.feedburner.com/ndtvnews-top-stories',          cat: 'world',    lang: 'en'},
+    {name: 'Economic Times',  url: 'https://economictimes.indiatimes.com/rssfeedstopstories.cms',cat: 'business', lang: 'en'},
+    {name: 'India Today',     url: 'https://www.indiatoday.in/rss/home',                         cat: 'world',    lang: 'en'},
+    {name: 'Hindustan Times', url: 'https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml', cat: 'world', lang: 'en'},
+    {name: 'Dainik Jagran',   url: 'https://www.jagran.com/rss/national.xml',                   cat: 'world',    lang: 'hi'},
+    {name: 'Amar Ujala',      url: 'https://www.amarujala.com/rss/breaking-news.xml',           cat: 'world',    lang: 'hi'}
   ],
   state: {
-    'Andhra Pradesh': [
-      {name: 'Sakshi Post', url: 'https://english.sakshi.com/feed', lang: 'en'},
-      {name: 'TOI Andhra Pradesh', url: 'https://timesofindia.indiatimes.com/rssfeeds/8662939.cms', lang: 'en'}
-    ],
-    'Arunachal Pradesh': [
-      {name: 'Sentinel Arunachal', url: 'https://www.sentinelassam.com/arunachal-pradesh/feed', lang: 'en'}
-    ],
-    'Assam': [
-      {name: 'Sentinel Assam', url: 'https://www.sentinelassam.com/feed', lang: 'en'},
-      {name: 'North East Now', url: 'https://nenow.in/feed', lang: 'en'}
-    ],
-    'Bihar': [
-      {name: 'TOI Patna/Bihar', url: 'https://timesofindia.indiatimes.com/rssfeeds/2711813.cms', lang: 'en'}
-    ],
-    'Chhattisgarh': [
-      {name: 'TOI Raipur', url: 'https://timesofindia.indiatimes.com/rssfeeds/41182452.cms', lang: 'en'}
-    ],
-    'Goa': [
-      {name: 'TOI Goa', url: 'https://timesofindia.indiatimes.com/rssfeeds/30147773.cms', lang: 'en'}
-    ],
-    'Gujarat': [
-      {name: 'Gujarat Samachar', url: 'https://www.gujaratsamachar.com/rss/feeds.xml', lang: 'gu'},
-      {name: 'TOI Ahmedabad', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128822399.cms', lang: 'en'}
-    ],
-    'Haryana': [
-      {name: 'TOI Haryana', url: 'https://timesofindia.indiatimes.com/rssfeeds/2277129.cms', lang: 'en'}
-    ],
-    'Himachal Pradesh': [
-      {name: 'TOI Shimla', url: 'https://timesofindia.indiatimes.com/rssfeeds/2277209.cms', lang: 'en'}
-    ],
-    'Jammu Kashmir': [
-      {name: 'Kashmir Monitor', url: 'https://www.kashmirmonitor.in/feed', lang: 'en'},
-      {name: 'TOI Srinagar', url: 'https://timesofindia.indiatimes.com/rssfeeds/2711817.cms', lang: 'en'}
-    ],
-    'Jharkhand': [
-      {name: 'TOI Ranchi', url: 'https://timesofindia.indiatimes.com/rssfeeds/41182494.cms', lang: 'en'}
-    ],
-    'Karnataka': [
-      {name: 'Prajavani Karnataka', url: 'https://www.prajavani.net/news/karnataka/rss.xml', lang: 'kn'},
-      {name: 'TOI Bangalore', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128830021.cms', lang: 'en'}
-    ],
-    'Kerala': [
-      {name: 'Mathrubhumi Kerala', url: 'https://www.mathrubhumi.com/rss/news.xml', lang: 'ml'},
-      {name: 'TOI Kochi/Kerala', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128833038.cms', lang: 'en'}
-    ],
-    'Madhya Pradesh': [
-      {name: 'TOI Bhopal', url: 'https://timesofindia.indiatimes.com/rssfeeds/3947055.cms', lang: 'en'}
-    ],
-    'Maharashtra': [
-      {name: 'Maharashtra Times', url: 'https://maharashtratimes.com/rssfeedstopstories.cms', lang: 'mr'},
-      {name: 'TOI Mumbai', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128816762.cms', lang: 'en'}
-    ],
-    'Manipur': [
-      {name: 'North East Now Manipur', url: 'https://nenow.in/north-east-news/manipur/feed', lang: 'en'}
-    ],
-    'Meghalaya': [
-      {name: 'North East Now Meghalaya', url: 'https://nenow.in/north-east-news/meghalaya/feed', lang: 'en'}
-    ],
-    'Mizoram': [
-      {name: 'North East Now Mizoram', url: 'https://nenow.in/north-east-news/mizoram/feed', lang: 'en'}
-    ],
-    'Nagaland': [
-      {name: 'North East Now Nagaland', url: 'https://nenow.in/north-east-news/nagaland/feed', lang: 'en'}
-    ],
-    'Odisha': [
-      {name: 'Sambad Odisha', url: 'https://www.sambad.in/feed', lang: 'or'},
-      {name: 'TOI Bhubaneswar', url: 'https://timesofindia.indiatimes.com/rssfeeds/41182356.cms', lang: 'en'}
-    ],
-    'Punjab': [
-      {name: 'Tribune Chandigarh', url: 'https://www.tribuneindia.com/rssfeed/default.rss', lang: 'en'},
-      {name: 'TOI Punjab', url: 'https://timesofindia.indiatimes.com/rssfeeds/2277129.cms', lang: 'en'}
-    ],
-    'Rajasthan': [
-      {name: 'TOI Jaipur', url: 'https://timesofindia.indiatimes.com/rssfeeds/2711793.cms', lang: 'en'}
-    ],
-    'Sikkim': [
-      {name: 'North East Now Sikkim', url: 'https://nenow.in/north-east-news/sikkim/feed', lang: 'en'}
-    ],
-    'Tamil Nadu': [
-      {name: 'Dinamalar Tamil', url: 'https://www.dinamalar.com/rss/feeds.asp', lang: 'ta'},
-      {name: 'TOI Chennai', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128817995.cms', lang: 'en'}
-    ],
-    'Telangana': [
-      {name: 'Eenadu Telugu', url: 'https://www.eenadu.net/rss/telangana.xml', lang: 'te'},
-      {name: 'TOI Hyderabad', url: 'https://timesofindia.indiatimes.com/rssfeeds/8662939.cms', lang: 'en'}
-    ],
-    'Tripura': [
-      {name: 'North East Now Tripura', url: 'https://nenow.in/north-east-news/tripura/feed', lang: 'en'}
-    ],
-    'Uttar Pradesh': [
-      {name: 'TOI Lucknow/UP', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128830508.cms', lang: 'en'}
-    ],
-    'Uttarakhand': [
-      {name: 'TOI Dehradun', url: 'https://timesofindia.indiatimes.com/rssfeeds/3942225.cms', lang: 'en'}
-    ],
-    'West Bengal': [
-      {name: 'Anandabazar Patrika', url: 'https://www.anandabazar.com/rss/national.xml', lang: 'bn'},
-      {name: 'TOI Kolkata', url: 'https://timesofindia.indiatimes.com/rssfeeds/2711824.cms', lang: 'en'}
-    ],
-    'Delhi': [
-      {name: 'Hindustan Times Delhi', url: 'https://www.hindustantimes.com/rss/delhi/rssfeed.xml', lang: 'en'},
-      {name: 'TOI Delhi', url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128830209.cms', lang: 'en'}
-    ]
+    'Andhra Pradesh':    [{name: 'TOI Andhra Pradesh',    url: 'https://timesofindia.indiatimes.com/rssfeeds/8662939.cms',       lang: 'en'}],
+    'Arunachal Pradesh': [{name: 'North East Now',        url: 'https://nenow.in/feed',                                          lang: 'en'}],
+    'Assam':             [{name: 'North East Now Assam',  url: 'https://nenow.in/feed',                                          lang: 'en'}],
+    'Bihar':             [{name: 'TOI Patna',             url: 'https://timesofindia.indiatimes.com/rssfeeds/2711813.cms',       lang: 'en'}],
+    'Chhattisgarh':      [{name: 'TOI Raipur',            url: 'https://timesofindia.indiatimes.com/rssfeeds/41182452.cms',      lang: 'en'}],
+    'Goa':               [{name: 'TOI Goa',               url: 'https://timesofindia.indiatimes.com/rssfeeds/30147773.cms',      lang: 'en'}],
+    'Gujarat':           [{name: 'TOI Ahmedabad',         url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128822399.cms',   lang: 'en'}],
+    'Haryana':           [{name: 'TOI Haryana',           url: 'https://timesofindia.indiatimes.com/rssfeeds/2277129.cms',       lang: 'en'}],
+    'Himachal Pradesh':  [{name: 'TOI Shimla',            url: 'https://timesofindia.indiatimes.com/rssfeeds/2277209.cms',       lang: 'en'}],
+    'Jammu Kashmir':     [{name: 'TOI Srinagar',          url: 'https://timesofindia.indiatimes.com/rssfeeds/2711817.cms',       lang: 'en'}],
+    'Jharkhand':         [{name: 'TOI Ranchi',            url: 'https://timesofindia.indiatimes.com/rssfeeds/41182494.cms',      lang: 'en'}],
+    'Karnataka':         [{name: 'TOI Bangalore',         url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128830021.cms',   lang: 'en'}],
+    'Kerala':            [{name: 'TOI Kochi',             url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128833038.cms',   lang: 'en'}],
+    'Madhya Pradesh':    [{name: 'TOI Bhopal',            url: 'https://timesofindia.indiatimes.com/rssfeeds/3947055.cms',       lang: 'en'}],
+    'Maharashtra':       [{name: 'TOI Mumbai',            url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128816762.cms',   lang: 'en'}],
+    'Manipur':           [{name: 'NE Now Manipur',        url: 'https://nenow.in/north-east-news/manipur/feed',                  lang: 'en'}],
+    'Meghalaya':         [{name: 'NE Now Meghalaya',      url: 'https://nenow.in/north-east-news/meghalaya/feed',                lang: 'en'}],
+    'Mizoram':           [{name: 'NE Now Mizoram',        url: 'https://nenow.in/north-east-news/mizoram/feed',                  lang: 'en'}],
+    'Nagaland':          [{name: 'NE Now Nagaland',       url: 'https://nenow.in/north-east-news/nagaland/feed',                 lang: 'en'}],
+    'Odisha':            [{name: 'TOI Bhubaneswar',       url: 'https://timesofindia.indiatimes.com/rssfeeds/41182356.cms',      lang: 'en'}],
+    'Punjab':            [{name: 'Tribune Chandigarh',    url: 'https://www.tribuneindia.com/rssfeed/default.rss',               lang: 'en'}],
+    'Rajasthan':         [{name: 'TOI Jaipur',            url: 'https://timesofindia.indiatimes.com/rssfeeds/2711793.cms',       lang: 'en'}],
+    'Sikkim':            [{name: 'NE Now Sikkim',         url: 'https://nenow.in/north-east-news/sikkim/feed',                   lang: 'en'}],
+    'Tamil Nadu':        [{name: 'TOI Chennai',           url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128817995.cms',   lang: 'en'}],
+    'Telangana':         [{name: 'TOI Hyderabad',         url: 'https://timesofindia.indiatimes.com/rssfeeds/8662939.cms',       lang: 'en'}],
+    'Tripura':           [{name: 'NE Now Tripura',        url: 'https://nenow.in/north-east-news/tripura/feed',                  lang: 'en'}],
+    'Uttar Pradesh':     [{name: 'TOI Lucknow',           url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128830508.cms',   lang: 'en'}],
+    'Uttarakhand':       [{name: 'TOI Dehradun',          url: 'https://timesofindia.indiatimes.com/rssfeeds/3942225.cms',       lang: 'en'}],
+    'West Bengal':       [{name: 'TOI Kolkata',           url: 'https://timesofindia.indiatimes.com/rssfeeds/2711824.cms',       lang: 'en'}],
+    'Delhi':             [{name: 'HT Delhi',              url: 'https://www.hindustantimes.com/feeds/rss/delhi-news/rssfeed.xml', lang: 'en'},
+                          {name: 'TOI Delhi',             url: 'https://timesofindia.indiatimes.com/rssfeeds/-2128830209.cms',   lang: 'en'}]
   },
   sports: [
-    {name: 'Cricbuzz Cricket', url: 'https://www.cricbuzz.com/rss/cricket-news', cat: 'sports'},
-    {name: 'ESPN Cricket', url: 'https://www.espncricinfo.com/rss/content/story/feeds/0.xml', cat: 'sports'},
-    {name: 'Sky Sports Soccer', url: 'https://www.skysports.com/rss/12040', cat: 'sports'}
+    {name: 'Cricbuzz Cricket', url: 'https://www.cricbuzz.com/rss/cricket-news',            cat: 'sports'},
+    {name: 'BBC Sport',        url: 'https://feeds.bbci.co.uk/sport/rss.xml',               cat: 'sports'},
+    {name: 'ESPN',             url: 'https://www.espncricinfo.com/rss/content/story/feeds/0.xml', cat: 'sports'}
   ]
 };
+
 
 // Colors mapping
 const CAT_COLORS = {
@@ -1789,27 +1722,61 @@ async function fetchNews(scope = 'international', category = '') {
 }
 
 async function fetchSingleFeed(feed) {
+  // ── Try rss2json first ──────────────────────────────────────────────────
   try {
-    const response = await fetch(PROXY + encodeURIComponent(feed.url));
-    if (!response.ok) return [];
-    const json = await response.json();
-    if (json.status !== 'ok' || !json.items) return [];
-    
-    return json.items.map(item => ({
-      id: btoa(item.link || Math.random().toString()),
-      title: item.title || '',
-      excerpt: stripHtml(item.description || item.content || '').slice(0, 150) + '...',
-      url: item.link || '',
-      image: item.thumbnail || item.enclosure?.link || extractImageUrl(item.description) || `https://picsum.photos/seed/${Math.random()}/600/400`,
-      publisher: feed.name,
-      category: feed.cat || 'world',
-      published: item.pubDate || '',
-      reading: Math.ceil((item.content || '').split(' ').length / 200) || 3
-    }));
+    const r = await fetch(PROXY + encodeURIComponent(feed.url), { signal: AbortSignal.timeout(8000) });
+    if (r.ok) {
+      const json = await r.json();
+      if (json.status === 'ok' && json.items && json.items.length > 0) {
+        return mapItems(json.items, feed);
+      }
+    }
+  } catch (_) { /* fall through to allorigins */ }
+
+  // ── Fallback: allorigins.win → raw XML parsed by DOMParser ─────────────
+  try {
+    const r2 = await fetch(PROXY_AO + encodeURIComponent(feed.url), { signal: AbortSignal.timeout(10000) });
+    if (!r2.ok) return [];
+    const wrapper = await r2.json();
+    const xml = wrapper.contents;
+    if (!xml) return [];
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const items = [...doc.querySelectorAll('item')];
+    return items.slice(0, 20).map(el => {
+      const get = tag => el.querySelector(tag)?.textContent?.trim() || '';
+      const link = get('link') || el.querySelector('guid')?.textContent?.trim() || '';
+      const desc = get('description');
+      return {
+        id:        btoa(link || Math.random().toString()).slice(0, 20),
+        title:     get('title'),
+        excerpt:   stripHtml(desc).slice(0, 150) + '...',
+        url:       link,
+        image:     extractImageUrl(desc) || `https://picsum.photos/seed/${encodeURIComponent(get('title').slice(0,10))}/600/400`,
+        publisher: feed.name,
+        category:  feed.cat || 'world',
+        published: get('pubDate'),
+        reading:   Math.max(2, Math.ceil(stripHtml(desc).split(' ').length / 200))
+      };
+    });
   } catch (e) {
     return [];
   }
 }
+
+function mapItems(items, feed) {
+  return items.map(item => ({
+    id:        btoa(item.link || Math.random().toString()).slice(0, 20),
+    title:     item.title || '',
+    excerpt:   stripHtml(item.description || item.content || '').slice(0, 150) + '...',
+    url:       item.link || '',
+    image:     item.thumbnail || item.enclosure?.link || extractImageUrl(item.description) || `https://picsum.photos/seed/${Math.random()}/600/400`,
+    publisher: feed.name,
+    category:  feed.cat || 'world',
+    published: item.pubDate || '',
+    reading:   Math.ceil((item.content || '').split(' ').length / 200) || 3
+  }));
+}
+
 
 async function fetchStateNews(state) {
   showSkeletons();
