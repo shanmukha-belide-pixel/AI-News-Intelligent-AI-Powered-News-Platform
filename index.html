@@ -2127,14 +2127,24 @@ let translatedSpeakExcerpt = "";
 
 async function preTranslateSpeech() {
   if (!activeArticle) return;
-  if (currentLanguage === 'en') {
-    translatedSpeakTitle = activeArticle.title;
-    translatedSpeakExcerpt = activeArticle.excerpt;
-  } else {
-    translatedSpeakTitle = await fetchTranslation(activeArticle.title, 'en', currentLanguage);
-    translatedSpeakExcerpt = await fetchTranslation(activeArticle.excerpt, 'en', currentLanguage);
+
+  // Reset immediately so stale cached text from previous article is never used
+  translatedSpeakTitle   = activeArticle.title;
+  translatedSpeakExcerpt = activeArticle.excerpt;
+
+  if (currentLanguage === 'en') return;
+
+  try {
+    [translatedSpeakTitle, translatedSpeakExcerpt] = await Promise.all([
+      fetchTranslation(activeArticle.title,   'en', currentLanguage),
+      fetchTranslation(activeArticle.excerpt, 'en', currentLanguage)
+    ]);
+    console.log(`[TTS cache] pre-translated for ${currentLanguage}:`, translatedSpeakTitle.slice(0,40));
+  } catch (err) {
+    console.warn('[TTS cache] pre-translation failed, using English:', err);
   }
 }
+
 
 // ═══════════════════════════════════════════════
 // AI SUMMARY & ANALYSIS DRAWERS
@@ -2270,95 +2280,94 @@ function openOriginalLink() {
 // ═══════════════════════════════════════════════
 // TEXT TO SPEECH (TTS) AUDIO PLAYER
 // ═══════════════════════════════════════════════
-async function speakActiveArticle() {
+function speakActiveArticle() {
   if (!window.speechSynthesis) {
     alert('Audio speech synthesis is not supported on this browser.');
     return;
   }
-  
+
   // Show floating bar
   const player = document.getElementById('audioPlayer');
   player.classList.add('visible');
-  
-  // Immediately enqueue a silent utterance synchronously to preserve user gesture context
-  const silentUtterance = new SpeechSynthesisUtterance('');
-  speechSynthesis.speak(silentUtterance);
 
-  document.getElementById('audioTrackTitle').textContent = currentLanguage === 'en' ? activeArticle.title : '🔄 Translating...';
-  document.getElementById('audioTrackPub').textContent = activeArticle.publisher;
-
-  // Fetch translation if needed
-  let speakTitle = activeArticle.title;
-  let speakExcerpt = activeArticle.excerpt;
-
-  if (currentLanguage !== 'en') {
-    try {
-      [speakTitle, speakExcerpt] = await Promise.all([
-        fetchTranslation(activeArticle.title, 'en', currentLanguage),
-        fetchTranslation(activeArticle.excerpt, 'en', currentLanguage)
-      ]);
-    } catch (err) {
-      console.warn('Audio translation failed, using English:', err);
-    }
-  }
+  // Use pre-cached translations (set in background by preTranslateSpeech)
+  // Fall back to raw article text if cache not ready yet
+  const speakTitle   = translatedSpeakTitle   || activeArticle.title;
+  const speakExcerpt = translatedSpeakExcerpt || activeArticle.excerpt;
 
   document.getElementById('audioTrackTitle').textContent = speakTitle;
-  
-  // Setup Speech Utterance - Cancel any active speaking first
-  speechSynthesis.cancel();
-  
-  const textToRead = `${speakTitle}. ${speakExcerpt}`;
-  ttsUtterance = new SpeechSynthesisUtterance(textToRead);
-  window.speechUtterance = ttsUtterance;
-  
-  // Try to find matching voice for target language
+  document.getElementById('audioTrackPub').textContent   = activeArticle.publisher;
+
+  // ─── Voice selection ───────────────────────────────────────────────────
   const voices = speechSynthesis.getVoices();
-  const langMatch = {
-    'as': 'as-IN', 'bn': 'bn-IN', 'doi': 'doi-IN', 'gu': 'gu-IN', 'hi': 'hi-IN',
-    'kn': 'kn-IN', 'ks': 'ks-IN', 'kok': 'kok-IN', 'mai': 'mai-IN', 'ml': 'ml-IN',
-    'mni': 'mni-IN', 'mr': 'mr-IN', 'ne': 'ne-IN', 'or': 'or-IN', 'pa': 'pa-IN',
-    'sa': 'sa-IN', 'sat': 'sat-IN', 'sd': 'sd-IN', 'ta': 'ta-IN', 'te': 'te-IN', 'ur': 'ur-IN'
+  const langMap = {
+    'as':'as-IN','bn':'bn-IN','doi':'hi-IN','gu':'gu-IN','hi':'hi-IN',
+    'kn':'kn-IN','ks':'ur-PK','kok':'mr-IN','mai':'hi-IN','ml':'ml-IN',
+    'mni':'bn-IN','mr':'mr-IN','ne':'ne-NP','or':'or-IN','pa':'pa-IN',
+    'sa':'hi-IN','sat':'hi-IN','sd':'ur-PK','ta':'ta-IN','te':'te-IN','ur':'ur-IN'
   };
-  
-  const targetCode = langMatch[currentLanguage] || 'en-US';
-  let voice = voices.find(v => v.lang.replace('_', '-').startsWith(targetCode));
-  if (!voice) {
-    voice = voices.find(v => v.lang.startsWith(currentLanguage));
+  const targetBCP = langMap[currentLanguage] || 'en-US';
+
+  function pickVoice(bcp) {
+    // Exact match first
+    let v = voices.find(x => x.lang.replace('_','-') === bcp);
+    // Prefix match
+    if (!v) v = voices.find(x => x.lang.replace('_','-').startsWith(bcp.split('-')[0]));
+    return v || null;
   }
-  
-  if (voice) {
-    ttsUtterance.voice = voice;
-  }
-  ttsUtterance.lang = targetCode;
-  ttsUtterance.rate = audioSpeed;
-  
-  ttsUtterance.onend = () => {
-    stopAudioState();
-  };
-  
-  let hasFailed = false;
-  ttsUtterance.onerror = (e) => {
-    console.error("SpeechSynthesis error:", e);
-    if (!hasFailed) {
-      hasFailed = true;
-      // Fallback: retry with default browser voice if language code caused error
-      console.warn("Speech locale failed. Retrying with browser default voice...");
-      const retryUtterance = new SpeechSynthesisUtterance(textToRead);
-      retryUtterance.rate = audioSpeed;
-      retryUtterance.onend = () => stopAudioState();
-      retryUtterance.onerror = () => stopAudioState();
-      speechSynthesis.speak(retryUtterance);
+
+  const textToRead = `${speakTitle}. ${speakExcerpt}`;
+
+  // ─── Build the real utterance ──────────────────────────────────────────
+  function buildAndSpeak() {
+    speechSynthesis.cancel();
+    ttsUtterance = new SpeechSynthesisUtterance(textToRead);
+    window.speechUtterance = ttsUtterance; // prevent GC
+
+    const voice = pickVoice(targetBCP);
+    if (voice) {
+      ttsUtterance.voice = voice;
+      ttsUtterance.lang  = voice.lang;
     } else {
-      stopAudioState();
+      // No matching voice — let browser choose but DO NOT set a wrong lang tag
+      // (setting an unsupported lang tag causes silent failure in Chrome/Safari)
+      ttsUtterance.lang = 'en-US';
     }
-  };
-  
-  // Wrap speak inside setTimeout to circumvent Chrome cancel/hang bug
-  setTimeout(() => {
+    ttsUtterance.rate = audioSpeed;
+
+    ttsUtterance.onend = () => stopAudioState();
+
+    let errorFired = false;
+    ttsUtterance.onerror = (e) => {
+      console.warn('SpeechSynthesis error:', e.error);
+      if (!errorFired) {
+        errorFired = true;
+        // Last-resort: plain English default voice
+        const retry = new SpeechSynthesisUtterance(textToRead);
+        retry.rate  = audioSpeed;
+        retry.onend = () => stopAudioState();
+        retry.onerror = () => stopAudioState();
+        speechSynthesis.speak(retry);
+      } else {
+        stopAudioState();
+      }
+    };
+
     speechSynthesis.speak(ttsUtterance);
     startAudioState();
-  }, 100);
+  }
+
+  // ─── User-gesture chain ────────────────────────────────────────────────
+  // Enqueue a silent utterance first (synchronous, preserves the gesture).
+  // Chain the real speech in its onend so we never lose the gesture lock.
+  speechSynthesis.cancel();
+  const silent = new SpeechSynthesisUtterance('');
+  silent.volume = 0;
+  silent.onend  = buildAndSpeak;
+  silent.onerror = buildAndSpeak; // still try even if silent fails
+  speechSynthesis.speak(silent);
 }
+
 
 function toggleAudio() {
   if (audioIsPlaying) {
