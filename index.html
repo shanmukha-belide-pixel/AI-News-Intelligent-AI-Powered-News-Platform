@@ -2321,18 +2321,124 @@ function openOriginalLink() {
   window.open(activeArticle.url, '_blank');
 }
 
-// ═══════════════════════════════════════════════
-// TEXT TO SPEECH (TTS) AUDIO PLAYER
-// ═══════════════════════════════════════════════
-function speakActiveArticle() {
-  if (!window.speechSynthesis) {
-    alert('Audio speech synthesis is not supported on this browser.');
-    return;
-  }
+// ═══════════════════════════════════════════════════════════════════════
+// TEXT TO SPEECH — Google Translate TTS (all 22 Indian languages)
+//                  + Web Speech API fallback
+// ═══════════════════════════════════════════════════════════════════════
 
-  // Show floating bar immediately
-  const player = document.getElementById('audioPlayer');
-  player.classList.add('visible');
+// Google Translate TTS language codes for all 22 Indian languages
+const GTTS_LANG = {
+  'en':  'en',
+  'hi':  'hi',   // Hindi
+  'te':  'te',   // Telugu
+  'ta':  'ta',   // Tamil
+  'kn':  'kn',   // Kannada
+  'ml':  'ml',   // Malayalam
+  'mr':  'mr',   // Marathi
+  'bn':  'bn',   // Bengali
+  'gu':  'gu',   // Gujarati
+  'pa':  'pa',   // Punjabi
+  'ur':  'ur',   // Urdu
+  'or':  'or',   // Odia
+  'as':  'as',   // Assamese
+  'ne':  'ne',   // Nepali
+  'sd':  'sd',   // Sindhi
+  'sa':  'sa',   // Sanskrit
+  'ks':  'ur',   // Kashmiri → Urdu (closest Google has)
+  'mai': 'hi',   // Maithili → Hindi
+  'doi': 'hi',   // Dogri → Hindi
+  'kok': 'mr',   // Konkani → Marathi
+  'sat': 'hi',   // Santali → Hindi
+  'mni': 'bn',   // Manipuri → Bengali
+};
+
+// State
+let gttsAudioEl    = null;   // current HTMLAudioElement
+let gttsChunkQueue = [];     // text chunks to speak
+let gttsChunkIdx   = 0;
+let gttsAborted    = false;
+
+// Split text into ≤190-char chunks at sentence/word boundaries
+function splitIntoChunks(text, max = 190) {
+  const chunks = [];
+  // Try to split on sentence endings first
+  const sentences = text.replace(/([.!?।])\s+/g, '$1\n').split('\n');
+  let cur = '';
+  for (const s of sentences) {
+    if (!s.trim()) continue;
+    if (s.length > max) {
+      // Long sentence — split on words
+      for (const word of s.split(' ')) {
+        if ((cur + ' ' + word).length > max) {
+          if (cur.trim()) chunks.push(cur.trim());
+          cur = word;
+        } else {
+          cur = cur ? cur + ' ' + word : word;
+        }
+      }
+    } else if ((cur + ' ' + s).length > max) {
+      if (cur.trim()) chunks.push(cur.trim());
+      cur = s;
+    } else {
+      cur = cur ? cur + ' ' + s : s;
+    }
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  return chunks.filter(c => c.length > 1);
+}
+
+// Fetch one chunk from Google TTS via corsproxy.io → returns blob URL
+async function fetchGTTSChunk(text, langCode) {
+  const gttsCode = GTTS_LANG[langCode] || 'en';
+  const gUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${gttsCode}&client=tw-ob&ttsspeed=${Math.min(audioSpeed, 1.5)}`;
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(gUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(gUrl)}`
+  ];
+  for (const proxyUrl of proxies) {
+    try {
+      const res = await fetchWithTimeout(proxyUrl, 8000);
+      if (!res.ok) continue;
+      const blob = await res.blob();
+      if (blob.size < 100) continue;
+      return URL.createObjectURL(blob);
+    } catch (_) { /* try next proxy */ }
+  }
+  return null; // all proxies failed
+}
+
+
+
+function toggleAudio() {
+  if (audioIsPlaying) {
+    stopGTTS();
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    stopAudioState();
+  } else {
+    speakActiveArticle();
+  }
+}
+
+function startAudioState() {
+  audioIsPlaying = true;
+  document.getElementById('audioPlayBtn').textContent = '⏸';
+  document.getElementById('audioWave').classList.add('playing');
+}
+
+function stopAudioState() {
+  audioIsPlaying = false;
+  document.getElementById('audioPlayBtn').textContent = '▶';
+  document.getElementById('audioWave').classList.remove('playing');
+}
+
+function closeAudioPlayer() {
+  stopGTTS();
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  stopAudioState();
+  document.getElementById('audioPlayer').classList.remove('visible');
+}
+
+
 
   // ── Voice list (may be empty until voices load) ────────────────────────
   let voices = speechSynthesis.getVoices();
@@ -2486,9 +2592,10 @@ function cycleAudioSpeed() {
   const currentIdx = speeds.indexOf(audioSpeed);
   audioSpeed = speeds[(currentIdx + 1) % speeds.length];
   document.getElementById('audioSpeedBtn').textContent = `${audioSpeed}x`;
-  if (ttsUtterance) {
-    speakActiveArticle();
-  }
+  // Update playback rate live if GTTS audio is currently playing
+  if (gttsAudioEl) gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
+  // Restart if playing with Web Speech
+  if (audioIsPlaying && !gttsAudioEl) speakActiveArticle();
 }
 
 // ═══════════════════════════════════════════════
