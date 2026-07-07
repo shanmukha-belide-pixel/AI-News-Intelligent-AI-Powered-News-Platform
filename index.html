@@ -2253,87 +2253,128 @@ function speakActiveArticle() {
     return;
   }
 
-  // Show floating bar
+  // Show floating bar immediately
   const player = document.getElementById('audioPlayer');
   player.classList.add('visible');
 
-  // Use pre-cached translations (set in background by preTranslateSpeech)
-  // Fall back to raw article text if cache not ready yet
-  const speakTitle   = translatedSpeakTitle   || activeArticle.title;
-  const speakExcerpt = translatedSpeakExcerpt || activeArticle.excerpt;
+  // ── Voice list (may be empty until voices load) ────────────────────────
+  let voices = speechSynthesis.getVoices();
 
-  document.getElementById('audioTrackTitle').textContent = speakTitle;
-  document.getElementById('audioTrackPub').textContent   = activeArticle.publisher;
-
-  // ─── Voice selection ───────────────────────────────────────────────────
-  const voices = speechSynthesis.getVoices();
-  const langMap = {
-    'as':'as-IN','bn':'bn-IN','doi':'hi-IN','gu':'gu-IN','hi':'hi-IN',
-    'kn':'kn-IN','ks':'ur-PK','kok':'mr-IN','mai':'hi-IN','ml':'ml-IN',
-    'mni':'bn-IN','mr':'mr-IN','ne':'ne-NP','or':'or-IN','pa':'pa-IN',
-    'sa':'hi-IN','sat':'hi-IN','sd':'ur-PK','ta':'ta-IN','te':'te-IN','ur':'ur-IN'
+  // ── Find best voice for the current language ───────────────────────────
+  // Maps our lang codes → BCP-47 tags that Windows/Mac TTS actually ships with
+  const langToBCP = {
+    'hi': ['hi-IN'],
+    'te': ['te-IN'],
+    'ta': ['ta-IN'],
+    'kn': ['kn-IN'],
+    'ml': ['ml-IN'],
+    'mr': ['mr-IN'],
+    'bn': ['bn-IN', 'bn-BD'],
+    'gu': ['gu-IN'],
+    'pa': ['pa-IN'],
+    'ur': ['ur-IN', 'ur-PK'],
+    'or': ['or-IN'],
+    'as': ['as-IN'],
+    'ne': ['ne-NP', 'ne-IN'],
+    'sd': ['sd-IN'],
+    'ks': ['ks-IN'],
+    'mai': ['hi-IN'],   // no Maithili TTS → Hindi
+    'doi': ['hi-IN'],
+    'kok': ['mr-IN'],
+    'sat': ['hi-IN'],
+    'mni': ['bn-IN'],
+    'sa':  ['hi-IN'],
+    'en':  ['en-IN', 'en-GB', 'en-US']
   };
-  const targetBCP = langMap[currentLanguage] || 'en-US';
 
-  function pickVoice(bcp) {
-    // Exact match first
-    let v = voices.find(x => x.lang.replace('_','-') === bcp);
-    // Prefix match
-    if (!v) v = voices.find(x => x.lang.replace('_','-').startsWith(bcp.split('-')[0]));
-    return v || null;
+  function findVoice(codes) {
+    for (const bcp of codes) {
+      const lang2 = bcp.split('-')[0];
+      // exact match
+      let v = voices.find(x => x.lang.replace('_','-').toLowerCase() === bcp.toLowerCase());
+      if (v) return v;
+      // prefix match (e.g. te-IN matches te-IN-NeerajNeural)
+      v = voices.find(x => x.lang.replace('_','-').toLowerCase().startsWith(lang2));
+      if (v) return v;
+    }
+    return null;
   }
 
-  const textToRead = `${speakTitle}. ${speakExcerpt}`;
+  const targetCodes = langToBCP[currentLanguage] || ['en-IN','en-US'];
+  const targetVoice = findVoice(targetCodes);
 
-  // ─── Build the real utterance ──────────────────────────────────────────
-  function buildAndSpeak() {
+  // ── Decide what TEXT to speak ──────────────────────────────────────────
+  // If a voice exists for the language → speak translated text
+  // If NO voice → fall back to English (translated text can't be pronounced)
+  let textToRead;
+  let displayTitle;
+
+  if (currentLanguage === 'en' || targetVoice) {
+    // Use pre-cached translated text (set by preTranslateSpeech in background)
+    const speakTitle   = translatedSpeakTitle   || activeArticle.title;
+    const speakExcerpt = translatedSpeakExcerpt || activeArticle.excerpt;
+    textToRead   = `${speakTitle}. ${speakExcerpt}`;
+    displayTitle = speakTitle;
+  } else {
+    // No TTS voice installed for this language — speak English original
+    textToRead   = `${activeArticle.title}. ${activeArticle.excerpt}`;
+    displayTitle = activeArticle.title;
+    document.getElementById('audioTrackPub').textContent = activeArticle.publisher + ' · (English audio — install ' + currentLanguage.toUpperCase() + ' language pack for native voice)';
+  }
+
+  document.getElementById('audioTrackTitle').textContent = displayTitle;
+  if (currentLanguage === 'en' || targetVoice) {
+    document.getElementById('audioTrackPub').textContent = activeArticle.publisher;
+  }
+
+  // ── Build and speak the utterance ─────────────────────────────────────
+  function doSpeak() {
     speechSynthesis.cancel();
     ttsUtterance = new SpeechSynthesisUtterance(textToRead);
-    window.speechUtterance = ttsUtterance; // prevent GC
+    window.speechUtterance = ttsUtterance; // keep alive (prevent GC)
 
-    const voice = pickVoice(targetBCP);
-    if (voice) {
-      ttsUtterance.voice = voice;
-      ttsUtterance.lang  = voice.lang;
+    if (targetVoice) {
+      ttsUtterance.voice = targetVoice;
+      ttsUtterance.lang  = targetVoice.lang;
     } else {
-      // No matching voice — let browser choose but DO NOT set a wrong lang tag
-      // (setting an unsupported lang tag causes silent failure in Chrome/Safari)
+      // Pick best English voice explicitly
+      const enVoice = findVoice(['en-IN','en-GB','en-US']) || voices[0];
+      if (enVoice) ttsUtterance.voice = enVoice;
       ttsUtterance.lang = 'en-US';
     }
-    ttsUtterance.rate = audioSpeed;
+    ttsUtterance.rate   = audioSpeed;
+    ttsUtterance.volume = 1;
+    ttsUtterance.pitch  = 1;
 
-    ttsUtterance.onend = () => stopAudioState();
-
-    let errorFired = false;
+    ttsUtterance.onstart = () => startAudioState();
+    ttsUtterance.onend   = () => stopAudioState();
     ttsUtterance.onerror = (e) => {
-      console.warn('SpeechSynthesis error:', e.error);
-      if (!errorFired) {
-        errorFired = true;
-        // Last-resort: plain English default voice
-        const retry = new SpeechSynthesisUtterance(textToRead);
-        retry.rate  = audioSpeed;
-        retry.onend = () => stopAudioState();
-        retry.onerror = () => stopAudioState();
-        speechSynthesis.speak(retry);
-      } else {
-        stopAudioState();
-      }
+      console.warn('TTS error:', e.error, '— retrying with default voice');
+      // Last-resort: utterly default, no voice set, English text
+      const retry = new SpeechSynthesisUtterance(activeArticle.title + '. ' + activeArticle.excerpt);
+      retry.rate   = audioSpeed;
+      retry.onend  = () => stopAudioState();
+      retry.onerror = () => stopAudioState();
+      speechSynthesis.speak(retry);
     };
 
     speechSynthesis.speak(ttsUtterance);
-    startAudioState();
   }
 
-  // ─── User-gesture chain ────────────────────────────────────────────────
-  // Enqueue a silent utterance first (synchronous, preserves the gesture).
-  // Chain the real speech in its onend so we never lose the gesture lock.
+  // ── Gesture-safe chain ─────────────────────────────────────────────────
+  // Speak a single space SYNCHRONOUSLY (preserves user-gesture).
+  // The real speech fires in onend — browsers keep the gesture alive
+  // across the onend callback of a synchronously queued utterance.
   speechSynthesis.cancel();
-  const silent = new SpeechSynthesisUtterance('');
-  silent.volume = 0;
-  silent.onend  = buildAndSpeak;
-  silent.onerror = buildAndSpeak; // still try even if silent fails
-  speechSynthesis.speak(silent);
+  const kickstarter = new SpeechSynthesisUtterance('\u00A0'); // non-breaking space
+  kickstarter.volume = 0;
+  kickstarter.rate   = 2;  // finish near-instantly
+  kickstarter.onend   = doSpeak;
+  kickstarter.onerror = doSpeak; // trigger doSpeak even if the space errors
+  startAudioState();  // show wave animation immediately while kickstarter plays
+  speechSynthesis.speak(kickstarter);
 }
+
 
 
 function toggleAudio() {
