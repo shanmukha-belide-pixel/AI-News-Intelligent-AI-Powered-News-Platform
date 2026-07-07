@@ -1116,7 +1116,7 @@ footer {
 }
 </style>
 </head>
-<body>
+<body class="light">
 
 <div class="bg-glows">
   <div class="glow-1"></div>
@@ -2039,8 +2039,8 @@ function cycleAudioSpeed() {
 // OTHER INTERACTIVE FEATURES
 // ═══════════════════════════════════════════════
 function toggleTheme() {
-  const isDark = document.body.classList.toggle('light');
-  document.getElementById('theme-btn').textContent = isDark ? '☀️' : '🌙';
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = isLight ? '🌙' : '☀️';
 }
 
 function toggleLike(btn) {
