@@ -81,43 +81,11 @@ Flutter App (Android/iOS)
 
 ---
 
-## ⚡ Quick Start
 
-### Prerequisites
-- Docker & Docker Compose
-- API keys (set in `.env`)
 
-### 1. Clone & configure
-```bash
-git clone <repo>
-cd ai-news-platform
-cp .env.example .env
-# Edit .env with your API keys
-```
 
-### 2. Set API keys in `.env`
-```env
-# Required
-JWT_SECRET=your-very-long-random-secret
 
-# Highly recommended (adds more news sources)
-NEWSAPI_KEY=your_newsapi_key          # newsapi.org
-GUARDIAN_API_KEY=your_guardian_key   # open-platform.theguardian.com
-NYT_API_KEY=your_nyt_key             # developer.nytimes.com
-GNEWS_API_KEY=your_gnews_key         # gnews.io
-OPENWEATHER_API_KEY=your_owm_key     # openweathermap.org
-OPENAI_API_KEY=your_openai_key       # AI summaries + chat + TTS
-```
-
-> **Note:** Even without any API keys, the platform will show real news from **30+ free RSS feeds** including BBC, Reuters, AP, TOI, NDTV, The Hindu, Cricbuzz, ESPN, etc.
-
-### 3. Run
-```bash
-cd backend
-docker-compose up -d
-```
-
-### 4. Access
+### 2. Access
 | Service | URL |
 |---------|-----|
 | Backend API | http://localhost:8080 |
@@ -125,48 +93,16 @@ docker-compose up -d
 | MinIO Console | http://localhost:9002 |
 | Redis | localhost:6379 |
 
-### 5. Flutter app
-```bash
-cd flutter_app
-flutter pub get
-flutter run
+
 ```
 
 ---
 
-## 📡 Key API Endpoints
 
-### News
-```
-GET /api/v1/news/feed               # Personalized home feed (all scopes)
-GET /api/v1/news/international      # ?category=technology
-GET /api/v1/news/national           # ?category=business&language=hi
-GET /api/v1/news/state              # ?state=Karnataka&language=kn
-GET /api/v1/news/sports             # ?sport=cricket
-GET /api/v1/news/breaking           # Breaking news banner
-GET /api/v1/news/trending           # Trending topics
-GET /api/v1/news/search?q=IPL       # Full-text + semantic search
-GET /api/v1/news/:id                # Article detail + AI summary
+
 ```
 
-### Weather
-```
-GET /api/v1/weather/current?city=Mumbai&country=IN
-GET /api/v1/weather/current?lat=19.07&lon=72.88
-GET /api/v1/weather/forecast?city=Delhi
-GET /api/v1/weather/air-quality?lat=28.61&lon=77.20
-GET /api/v1/weather/cities          # Preset cities list
-```
 
-### Auth
-```
-POST /api/v1/auth/register
-POST /api/v1/auth/login
-POST /api/v1/auth/google
-POST /api/v1/auth/apple
-POST /api/v1/auth/guest
-POST /api/v1/auth/refresh
-GET  /api/v1/auth/me
 ```
 
 ---
