@@ -1,181 +1,136 @@
-# AI News Platform
+# 🌐 AI News Intelligent Platform
 
-> Production-grade AI-powered news platform — **C++20 Backend · Flutter App · PostgreSQL · Redis · Elasticsearch · Kafka**
+[![GitHub Pages Deployment](https://img.shields.io/badge/GitHub_Pages-Active-brightgreen?logo=github&style=flat-square)](https://shanmukha-belide-pixel.github.io/AI-News-Intelligent-AI-Powered-News-Platform/)
+[![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg?style=flat-square&logo=c%2B%2B)](https://gcc.gnu.org/)
+[![Flutter](https://img.shields.io/badge/Flutter-3.22-02569B?logo=flutter&style=flat-square)](https://flutter.dev/)
+[![Docker](https://img.shields.io/badge/Docker-Supported-blue?logo=docker&style=flat-square)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+
+> A production-grade, premium AI-powered news platform offering real-time news aggregation, dynamic multi-lingual translations, AI reasoning drawer, offline text-to-speech audio reader, and keyless auto-geolocation weather. Built using a robust **C++20 Backend (Drogon), PostgreSQL, Redis, Elasticsearch, Kafka**, a **Flutter App**, and a gorgeous **Single-Page Web Application**.
+
+### 🔗 Live Hosted Web App
+👉 [**Access Live Platform on GitHub Pages**](https://shanmukha-belide-pixel.github.io/AI-News-Intelligent-AI-Powered-News-Platform/)
 
 ---
 
-## 📰 Real News Sources
+## ✨ Features
 
-### 🌍 International
-| Source | Type | Free |
-|--------|------|------|
-| BBC World, Tech, Science, Business, Health | RSS | ✅ |
-| Reuters World, Business, Tech | RSS | ✅ |
-| AP News (Top, Tech, Business, Sports) | RSS | ✅ |
-| Al Jazeera | RSS | ✅ |
-| France24, DW (Deutsche Welle) | RSS | ✅ |
-| TechCrunch, Ars Technica, The Verge, Wired | RSS | ✅ |
-| Nature, Science Daily, NPR | RSS | ✅ |
-| The Guardian | API | Free key |
-| New York Times | API | Free key |
-| NewsAPI.org | API | Free key |
-| GNews | API | Free key |
+### 1. 🌍 Core Scope & Multi-Tier News
+*   **International:** Real-time global feeds (BBC World, TechCrunch, Nature, Reuters, AP, Wired).
+*   **National (India):** Major national top stories and business hubs in English and Hindi (Times of India, NDTV, The Hindu, Economic Times, Amar Ujala).
+*   **State News (29 States + UTs):** Dynamic coverage of all Indian regions mapped to regional RSS publishers (e.g. Eenadu, Prajavani, Anandabazar Patrika, Dinamalar) with a **fail-safe local data generator fallback** to guarantee coverage.
+*   **Sports Coverage:** Sports feeds from Cricbuzz, ESPN, Sky Sports, and Autosport.
 
-### 🇮🇳 National (India)
-| Source | Language |
-|--------|----------|
-| Times of India (General, Tech, Business, Sports) | English |
-| NDTV, NDTV Tech | English |
-| The Hindu (National, Business, Science) | English |
-| India Today, Hindustan Times, Indian Express | English |
-| LiveMint, Economic Times, Business Standard | English |
-| Dainik Jagran, Amar Ujala, Navbharat Times, Bhaskar | **Hindi** |
+### 2. 🌐 Real-Time Translation (22 Indian Languages)
+Supports immediate layout translations into the 22 official regional Indian languages using the free, keyless MyMemory Translation API:
+*   *Assamese, Bengali, Bodo, Dogri, Gujarati, Hindi, Kannada, Kashmiri, Konkani, Maithili, Malayalam, Manipuri, Marathi, Nepali, Odia, Punjabi, Sanskrit, Santhali, Sindhi, Tamil, Telugu, Urdu, and English.*
+*   Translates card headlines, AI summaries, section headers, search fields, and greeting widgets dynamically upon selection.
 
-### 📍 State (India) — 30+ Sources
-| State | Sources |
-|-------|---------|
-| Telangana / AP | Eenadu (Telugu), Sakshi, Andhra Jyothy |
-| Tamil Nadu | Dinamalar, Dinamani (Tamil), The Hindu Chennai |
-| Kerala | Mathrubhumi, Malayala Manorama (Malayalam) |
-| Karnataka | Prajavani, Vijaya Karnataka (Kannada) |
-| Maharashtra | Lokmat, Maharashtra Times (Marathi), HT Mumbai |
-| Punjab / Haryana | Punjab Kesari (Hindi), Tribune Chandigarh |
-| Gujarat | Gujarat Samachar, Sandesh (Gujarati) |
-| West Bengal | Anandabazar Patrika (Bengali), The Telegraph |
-| Delhi NCR | Delhi Times, HT Delhi |
-| + Rajasthan, MP, Assam, J&K, Bihar, UP, Odisha |
+### 3. 🤖 AI Summary & Comprehension Drawer
+Clicking any article opens a slide-up AI drawer offering structured, translated details:
+*   **Quick Summary:** High-level analytical overview of the story's context.
+*   **Key Points:** Clear bullet-point analysis of why the event matters and its long-term societal/economic impact.
+*   **Interactive Quiz Game:** Dynamic multiple-choice questions matching the article. Users can click answers to see instant correct/wrong animations and explanation details.
 
-### ⚽ Sports
-| Sport | Sources |
-|-------|---------|
-| 🏏 Cricket | Cricbuzz, ESPNcricinfo, NDTV Sports |
-| ⚽ Football | Goal.com, Sky Sports, ESPN FC, BBC Football, Guardian |
-| 🏎️ Formula 1 | Formula1.com official, Autosport |
-| 🎾 Tennis | ATP Tour official, BBC Sport Tennis |
-| 🏀 Basketball | NBA official, ESPN NBA |
-| 🏅 Olympics | olympics.com |
-| General | ESPN, Sky Sports, Reuters Sports, AP Sports, Sportskeeda |
+### 4. 🎧 Audio Player (TTS Voice Synthesis)
+*   A premium, floating audio player panel popping up from the bottom of the screen.
+*   Uses native browser Speech Synthesis to read translated headlines and summaries out loud.
+*   Features a **live-animating audio wave visualization**, play/pause triggers, and a **speed-multiplier toggle** (1.0x, 1.25x, 1.5x, 2.0x).
 
-### ⛅ Weather
-- **OpenWeatherMap** — current weather, 5-day forecast, air quality index
-- 20 Indian cities preset + any city/coordinates
-- Dynamic weather card with condition-based gradients
+### 5. ⛅ Keyless Auto-Geolocation Weather Card
+*   Requires **zero API keys** to run.
+*   Automatically detects the user's city via IP geolocation API and queries the **Open-Meteo REST API** to retrieve current temperatures, humidity levels, wind speed, wind conditions, and weather icons.
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-Flutter App (Android/iOS)
-        │ HTTPS/WSS
-   Nginx (reverse proxy + TLS)
-        │
-   C++20 Drogon Backend (port 8080)
-   ┌────────────────────────────────┐
-   │  Auth  │  News  │  AI  │  WS  │
-   └──┬─────┴───┬────┴──┬───┴──────┘
-      │         │       │
-   PostgreSQL  Redis  Kafka
-   Elasticsearch  ClickHouse  MinIO
+                 Web App / Flutter App
+                          │ HTTPS / WSS
+                  Nginx Reverse Proxy
+                          │
+            C++20 Drogon Backend (Port 8080)
+      ┌───────────────────┬───────────────┬────────────────┐
+      │  Auth Controller  │ News Ingester │  AI & Chat API │
+      └─────────┬─────────┴───────┬───────┴────────┬───────┘
+                │                 │                │
+            PostgreSQL          Redis            Kafka
+          (Partitioned DB)  (PubSub/Cache)    (Telemetry)
+                │                 │                │
+          Elasticsearch       ClickHouse         MinIO
+         (Semantic Search)   (Big Data OLAP)   (S3 Storage)
 ```
 
 ---
 
-
-
-
-
-### 2. Access
-| Service | URL |
-|---------|-----|
-| Backend API | http://localhost:8080 |
-| Elasticsearch | http://localhost:9200 |
-| MinIO Console | http://localhost:9002 |
-| Redis | localhost:6379 |
-
-
-```
-
----
-
-
-
-```
-
-
-```
-
----
-
-## 📁 Project Structure
+## 📂 Project Structure
 
 ```
 ai-news-platform/
+├── index.html                  # Single-Page Web App (Aesthetics, Geolocation, TTS, Translations)
 ├── database/
-│   ├── schema.sql              # 18 tables, types, RBAC seed
-│   ├── indexes.sql             # 40+ composite/GIN/partial indexes
-│   ├── stored_procedures.sql   # Personalized feed, trending, search
-│   └── triggers.sql            # Auto timestamps, streaks, counts
+│   ├── schema.sql              # Partitioned table schema & RBAC controls
+│   ├── stored_procedures.sql   # Personalized matching algorithms
+│   └── partitioning.sql        # Dynamic month-by-month table partition triggers
 ├── backend/
-│   ├── CMakeLists.txt
-│   ├── Dockerfile
-│   ├── docker-compose.yml
+│   ├── CMakeLists.txt          # Drogon, Redis++, rdkafka configuration
+│   ├── Dockerfile              # Multi-stage production compiler image
+│   ├── docker-compose.yml      # Multi-container service stack setup
 │   └── src/
-│       ├── main.cpp
-│       ├── config/app_config.hpp
+│       ├── main.cpp            # Drogon setup, database pools, global CORS, middleware
 │       ├── core/
-│       │   ├── auth/           # JWT, OAuth, AuthController
-│       │   ├── news/           # NewsFetcher (5 tiers), NewsController
-│       │   ├── ai/             # AIService (GPT-4o), ChatController
-│       │   └── weather/        # WeatherService, WeatherController
-│       ├── infrastructure/
-│       │   ├── redis_client.hpp
-│       │   ├── kafka_producer.hpp
-│       │   └── elasticsearch_client.hpp
-│       └── api/middleware/
-│           ├── auth_middleware.hpp
-│           └── rate_limiter.hpp
-├── flutter_app/
-│   ├── pubspec.yaml
-│   └── lib/
-│       ├── main.dart
-│       ├── core/
-│       │   ├── theme/app_theme.dart   # Material 3 dark+light
-│       │   └── network/api_client.dart
-│       └── features/
-│           ├── home/                  # Dashboard (4 scope tabs)
-│           │   └── widgets/
-│           │       ├── news_card.dart
-│           │       └── weather_widget.dart
-│           ├── news/                  # Detail, AI analysis
-│           ├── sports/                # Sports tab, ticker
-│           ├── weather/               # Full forecast screen
-│           ├── search/                # Voice + semantic search
-│           ├── ai_chat/               # Streaming AI chat
-│           ├── audio/                 # Podcast player
-│           └── auth/                  # Login / register
-└── .github/workflows/ci_cd.yml        # Full CI/CD pipeline
+│       │   ├── auth/           # OAuth, JWT token generation
+│       │   ├── news/           # RSS ingesters and category controller mappings
+│       │   ├── weather/        # Weather REST controller
+│       │   └── ai/             # GPT-4o streaming chat controller
+│       └── infrastructure/
+│           ├── redis_client.hpp
+│           ├── kafka_producer.hpp
+│           └── elasticsearch_client.hpp
+└── flutter_app/
+    ├── pubspec.yaml
+    └── lib/
+        ├── main.dart
+        ├── core/theme/         # Material 3 Light/Dark theme configuration
+        └── features/           # Home, News, Weather, and Sports Providers (Riverpod)
 ```
 
 ---
 
-## 🔧 Tech Stack
+## 🔧 Installation & Setup
 
-| Layer | Technology |
-|-------|-----------|
-| Mobile | Flutter 3.22 (Android + iOS), Material 3 |
-| Backend | C++20, Drogon Framework |
-| Database | PostgreSQL 16 (partitioned, full-text search) |
-| Cache | Redis 7.2 (LRU, pub/sub) |
-| Search | Elasticsearch 8.12 |
-| Events | Apache Kafka 7.6 |
-| Analytics | ClickHouse 24 |
-| Storage | MinIO |
-| AI | OpenAI GPT-4o (summarization, chat, TTS) |
-| Auth | JWT (HS256), Google OAuth, Apple Sign In |
-| DevOps | Docker, Kubernetes, GitHub Actions |
+### 1. Launching the Web App (Static / GitHub Pages)
+To run the lightweight demonstration web app instantly in your browser:
+*   Open the root `index.html` file, or
+*   Deploy it directly to any static provider (e.g. GitHub Pages).
+
+### 2. Spinning Up Infrastructure
+Launch the backend databases and analytics systems using Docker:
+```bash
+cd backend
+docker-compose up -d
+```
+
+### 3. Compiling the C++ Backend
+Ensure you have CMake, GCC/Clang, and Drogon dependencies installed:
+```bash
+cd backend
+mkdir build && cd build
+cmake ..
+make
+./news_platform
+```
+
+### 4. Running the Flutter App
+Ensure you have the Flutter SDK configured:
+```bash
+cd flutter_app
+flutter pub get
+flutter run
+```
 
 ---
 
 ## 📄 License
-MIT License — Free to use for academic and commercial projects.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
