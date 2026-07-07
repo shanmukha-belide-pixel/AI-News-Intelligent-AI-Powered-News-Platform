@@ -495,9 +495,15 @@ header {
   white-space: nowrap;
   transition: var(--transition);
 }
-.cat-chip:hover, .cat-chip.active {
-  color: #fff;
-  border-color: currentColor;
+.cat-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.cat-chip.active {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.2);
 }
 
 /* ═══════════════════════════════════════════════
@@ -1248,12 +1254,12 @@ footer {
 
   <!-- CATEGORY CHIPS (Hidden on sports/state) -->
   <div class="cat-row" id="catRow">
-    <div class="cat-chip active" style="color:var(--primary);border-color:var(--primary)" onclick="setCat('', this)">All News</div>
-    <div class="cat-chip" style="--c:#7b68ee" onclick="setCat('technology', this)">💻 Tech</div>
-    <div class="cat-chip" style="--c:#2ecc71" onclick="setCat('business', this)">📈 Business</div>
-    <div class="cat-chip" style="--c:#e74c3c" onclick="setCat('politics', this)">🗳️ Politics</div>
-    <div class="cat-chip" style="--c:#9c27b0" onclick="setCat('science', this)">🔬 Science</div>
-    <div class="cat-chip" style="--c:#00bcd4" onclick="setCat('health', this)">🏥 Health</div>
+    <div class="cat-chip active" onclick="setCat('', this)">All News</div>
+    <div class="cat-chip" onclick="setCat('technology', this)">💻 Tech</div>
+    <div class="cat-chip" onclick="setCat('business', this)">📈 Business</div>
+    <div class="cat-chip" onclick="setCat('politics', this)">🗳️ Politics</div>
+    <div class="cat-chip" onclick="setCat('science', this)">🔬 Science</div>
+    <div class="cat-chip" onclick="setCat('health', this)">🏥 Health</div>
   </div>
 
 
@@ -1357,6 +1363,9 @@ const FEEDS = {
   international: [
     {name: 'BBC News', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', cat: 'world'},
     {name: 'BBC Tech', url: 'https://feeds.bbci.co.uk/news/technology/rss.xml', cat: 'technology'},
+    {name: 'BBC Business', url: 'https://feeds.bbci.co.uk/news/business/rss.xml', cat: 'business'},
+    {name: 'BBC Politics', url: 'https://feeds.bbci.co.uk/news/politics/rss.xml', cat: 'politics'},
+    {name: 'BBC Health', url: 'https://feeds.bbci.co.uk/news/health/rss.xml', cat: 'health'},
     {name: 'Reuters World', url: 'https://feeds.reuters.com/reuters/worldNews', cat: 'world'},
     {name: 'TechCrunch', url: 'https://techcrunch.com/feed/', cat: 'technology'},
     {name: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/index', cat: 'technology'},
