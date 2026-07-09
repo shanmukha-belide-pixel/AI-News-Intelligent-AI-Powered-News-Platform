@@ -2348,6 +2348,7 @@ const GTTS_LANG = {
   'kok': 'mr',   // Konkani → Marathi
   'sat': 'hi',   // Santali → Hindi
   'mni': 'bn',   // Manipuri → Bengali
+  'brx': 'hi',   // Bodo → Hindi (written in Devnagari)
 };
 
 // State
@@ -2390,7 +2391,7 @@ async function fetchGTTSChunk(text, langCode) {
   const gttsCode = GTTS_LANG[langCode] || 'en';
   const gUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${gttsCode}&client=tw-ob&ttsspeed=${Math.min(audioSpeed, 1.5)}`;
   const proxies = [
-    `https://corsproxy.io/?${encodeURIComponent(gUrl)}`,
+    `https://corsproxy.org/?${encodeURIComponent(gUrl)}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(gUrl)}`
   ];
   for (const proxyUrl of proxies) {
