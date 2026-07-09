@@ -2387,6 +2387,7 @@ function splitIntoChunks(text, max = 190) {
 }
 
 // Fetch one chunk from Google TTS via corsproxy.io → returns blob URL
+// Fetch one chunk from Google TTS via working proxies (with strict content type checking)
 async function fetchGTTSChunk(text, langCode) {
   const gttsCode = GTTS_LANG[langCode] || 'en';
   const gUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${gttsCode}&client=tw-ob&ttsspeed=${Math.min(audioSpeed, 1.5)}`;
@@ -2396,8 +2397,13 @@ async function fetchGTTSChunk(text, langCode) {
   ];
   for (const proxyUrl of proxies) {
     try {
-      const res = await fetchWithTimeout(proxyUrl, 8000);
+      const res = await fetchWithTimeout(proxyUrl, 7000);
       if (!res.ok) continue;
+      const contentType = res.headers.get('Content-Type') || '';
+      if (!contentType.includes('audio') && !contentType.includes('mpeg') && !contentType.includes('octet-stream')) {
+        console.warn(`[Proxy] Ignored non-audio response: ${contentType}`);
+        continue;
+      }
       const blob = await res.blob();
       if (blob.size < 100) continue;
       return URL.createObjectURL(blob);
@@ -2412,27 +2418,61 @@ async function playNextGTTSChunk() {
     if (!gttsAborted) stopAudioState();
     return;
   }
-  const chunk  = gttsChunkQueue[gttsChunkIdx++];
-  const blobUrl = await fetchGTTSChunk(chunk, currentLanguage);
+  
+  const chunk = gttsChunkQueue[gttsChunkIdx++];
+  const gttsCode = GTTS_LANG[currentLanguage] || 'en';
+  const gUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=${gttsCode}&client=tw-ob&ttsspeed=${Math.min(audioSpeed, 1.5)}`;
 
-  if (gttsAborted) return;
-
-  if (!blobUrl) {
-    playNextGTTSChunk();
-    return;
+  if (gttsAudioEl) {
+    gttsAudioEl.pause();
+    gttsAudioEl.src = '';
   }
 
-  if (gttsAudioEl) { gttsAudioEl.pause(); gttsAudioEl.src = ''; }
-
-  gttsAudioEl = new Audio(blobUrl);
+  // Attempt 1: Direct Playback via Audio tag (bypasses CORS restrictions)
+  gttsAudioEl = new Audio(gUrl);
   gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
-  gttsAudioEl.onended  = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
-  gttsAudioEl.onerror  = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
+  let directPlayFailed = false;
+
+  gttsAudioEl.onended = () => {
+    playNextGTTSChunk();
+  };
+
+  gttsAudioEl.onerror = async () => {
+    if (directPlayFailed) return;
+    directPlayFailed = true;
+    console.warn(`[TTS] Direct playback failed, trying CORS proxy...`);
+
+    // Attempt 2: CORS Proxy Fallback
+    const blobUrl = await fetchGTTSChunk(chunk, currentLanguage);
+    if (gttsAborted) return;
+
+    if (blobUrl) {
+      if (gttsAudioEl) { gttsAudioEl.pause(); gttsAudioEl.src = ''; }
+      gttsAudioEl = new Audio(blobUrl);
+      gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
+      gttsAudioEl.onended = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
+      gttsAudioEl.onerror = () => {
+        URL.revokeObjectURL(blobUrl);
+        console.warn('[TTS] Proxy failed, falling back to Web Speech API');
+        const remainder = gttsChunkQueue.slice(gttsChunkIdx - 1).join('. ');
+        stopGTTS();
+        speakWithWebSpeech(remainder, currentLanguage);
+      };
+      gttsAudioEl.play().catch(() => playNextGTTSChunk());
+    } else {
+      // Attempt 3: Web Speech API Fallback
+      console.warn('[TTS] All methods failed, falling back to Web Speech API');
+      const remainder = gttsChunkQueue.slice(gttsChunkIdx - 1).join('. ');
+      stopGTTS();
+      speakWithWebSpeech(remainder, currentLanguage);
+    }
+  };
+
   try {
     await gttsAudioEl.play();
   } catch (e) {
-    console.warn('GTTS autoplay blocked:', e);
-    playNextGTTSChunk();
+    console.warn('[TTS] Direct play blocked/error:', e.message);
+    gttsAudioEl.onerror();
   }
 }
 
@@ -2504,31 +2544,7 @@ async function speakActiveArticle() {
   gttsChunkIdx   = 0;
 
   startAudioState();
-
-  // Try Google TTS first
-  const firstBlobUrl = await fetchGTTSChunk(gttsChunkQueue[0] || speakTitle, currentLanguage);
-  if (gttsAborted) return;
-
-  if (firstBlobUrl) {
-    gttsAudioEl = new Audio(firstBlobUrl);
-    gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
-    gttsChunkIdx = 1;
-    gttsAudioEl.onended  = () => { URL.revokeObjectURL(firstBlobUrl); playNextGTTSChunk(); };
-    gttsAudioEl.onerror  = () => { URL.revokeObjectURL(firstBlobUrl); playNextGTTSChunk(); };
-    try {
-      await gttsAudioEl.play();
-    } catch (e) {
-      console.warn('GTTS blocked, falling back to Web Speech');
-      stopGTTS();
-      speakWithWebSpeech(fullText, currentLanguage);
-    }
-  } else {
-    console.warn('[TTS] Google TTS unavailable, using Web Speech API');
-    stopGTTS();
-    document.getElementById('audioTrackPub').textContent =
-      activeArticle.publisher + (currentLanguage !== 'en' ? ' · 🌐 Web Speech' : '');
-    speakWithWebSpeech(fullText, currentLanguage);
-  }
+  playNextGTTSChunk();
 }
 
 function toggleAudio() {
