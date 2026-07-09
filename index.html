@@ -2407,9 +2407,133 @@ async function fetchGTTSChunk(text, langCode) {
   return null; // all proxies failed
 }
 
+// Play all queued GTTS chunks sequentially
+async function playNextGTTSChunk() {
+  if (gttsAborted || gttsChunkIdx >= gttsChunkQueue.length) {
+    if (!gttsAborted) stopAudioState();
+    return;
+  }
+  const chunk  = gttsChunkQueue[gttsChunkIdx++];
+  const blobUrl = await fetchGTTSChunk(chunk, currentLanguage);
 
+  if (gttsAborted) return;
+
+  if (!blobUrl) {
+    playNextGTTSChunk();
+    return;
+  }
+
+  if (gttsAudioEl) { gttsAudioEl.pause(); gttsAudioEl.src = ''; }
+
+  gttsAudioEl = new Audio(blobUrl);
+  gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
+  gttsAudioEl.onended  = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
+  gttsAudioEl.onerror  = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
+  try {
+    await gttsAudioEl.play();
+  } catch (e) {
+    console.warn('GTTS autoplay blocked:', e);
+    playNextGTTSChunk();
+  }
+}
+
+// Stop all GTTS audio
+function stopGTTS() {
+  gttsAborted = true;
+  if (gttsAudioEl) { gttsAudioEl.pause(); gttsAudioEl.src = ''; gttsAudioEl = null; }
+  gttsChunkQueue = [];
+  gttsChunkIdx   = 0;
+}
+
+// Web Speech API fallback
+function speakWithWebSpeech(text, langCode) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+
+  const voices = speechSynthesis.getVoices();
+  const bcpMap = { hi:['hi-IN'], te:['te-IN'], ta:['ta-IN'], kn:['kn-IN'],
+    ml:['ml-IN'], mr:['mr-IN'], bn:['bn-IN','bn-BD'], gu:['gu-IN'],
+    pa:['pa-IN'], ur:['ur-IN','ur-PK'], or:['or-IN'], as:['as-IN'],
+    ne:['ne-NP'], en:['en-IN','en-GB','en-US'] };
+  const codes = bcpMap[langCode] || ['en-IN','en-US'];
+
+  function findVoice() {
+    for (const bcp of codes) {
+      const prefix = bcp.split('-')[0];
+      let v = voices.find(x => x.lang.replace('_','-').toLowerCase() === bcp.toLowerCase());
+      if (v) return v;
+      v = voices.find(x => x.lang.replace('_','-').toLowerCase().startsWith(prefix));
+      if (v) return v;
+    }
+    return voices.find(x => x.lang.startsWith('en')) || voices[0] || null;
+  }
+
+  const utt = new SpeechSynthesisUtterance(text.slice(0, 500));
+  window.speechUtterance = utt;
+  const v = findVoice();
+  if (v) { utt.voice = v; utt.lang = v.lang; } else { utt.lang = 'en-US'; }
+  utt.rate   = audioSpeed;
+  utt.volume = 1;
+  utt.onend  = () => stopAudioState();
+  utt.onerror = () => stopAudioState();
+
+  const kick = new SpeechSynthesisUtterance('\u00A0');
+  kick.volume = 0; kick.rate = 2;
+  kick.onend  = () => speechSynthesis.speak(utt);
+  kick.onerror = () => speechSynthesis.speak(utt);
+  speechSynthesis.speak(kick);
+}
+
+// Main TTS entry point — Google Translate TTS with Web Speech fallback
+async function speakActiveArticle() {
+  if (!activeArticle) return;
+
+  document.getElementById('audioPlayer').classList.add('visible');
+
+  const speakTitle   = translatedSpeakTitle   || activeArticle.title;
+  const speakExcerpt = translatedSpeakExcerpt || activeArticle.excerpt;
+  const fullText     = `${speakTitle}. ${speakExcerpt}`;
+
+  document.getElementById('audioTrackTitle').textContent = speakTitle;
+  document.getElementById('audioTrackPub').textContent   = activeArticle.publisher;
+
+  // Reset state
+  stopGTTS();
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  gttsAborted    = false;
+  gttsChunkQueue = splitIntoChunks(fullText);
+  gttsChunkIdx   = 0;
+
+  startAudioState();
+
+  // Try Google TTS first
+  const firstBlobUrl = await fetchGTTSChunk(gttsChunkQueue[0] || speakTitle, currentLanguage);
+  if (gttsAborted) return;
+
+  if (firstBlobUrl) {
+    gttsAudioEl = new Audio(firstBlobUrl);
+    gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
+    gttsChunkIdx = 1;
+    gttsAudioEl.onended  = () => { URL.revokeObjectURL(firstBlobUrl); playNextGTTSChunk(); };
+    gttsAudioEl.onerror  = () => { URL.revokeObjectURL(firstBlobUrl); playNextGTTSChunk(); };
+    try {
+      await gttsAudioEl.play();
+    } catch (e) {
+      console.warn('GTTS blocked, falling back to Web Speech');
+      stopGTTS();
+      speakWithWebSpeech(fullText, currentLanguage);
+    }
+  } else {
+    console.warn('[TTS] Google TTS unavailable, using Web Speech API');
+    stopGTTS();
+    document.getElementById('audioTrackPub').textContent =
+      activeArticle.publisher + (currentLanguage !== 'en' ? ' · 🌐 Web Speech' : '');
+    speakWithWebSpeech(fullText, currentLanguage);
+  }
+}
 
 function toggleAudio() {
+
   if (audioIsPlaying) {
     stopGTTS();
     if (window.speechSynthesis) speechSynthesis.cancel();
@@ -2438,154 +2562,6 @@ function closeAudioPlayer() {
   document.getElementById('audioPlayer').classList.remove('visible');
 }
 
-
-
-  // ── Voice list (may be empty until voices load) ────────────────────────
-  let voices = speechSynthesis.getVoices();
-
-  // ── Find best voice for the current language ───────────────────────────
-  // Maps our lang codes → BCP-47 tags that Windows/Mac TTS actually ships with
-  const langToBCP = {
-    'hi': ['hi-IN'],
-    'te': ['te-IN'],
-    'ta': ['ta-IN'],
-    'kn': ['kn-IN'],
-    'ml': ['ml-IN'],
-    'mr': ['mr-IN'],
-    'bn': ['bn-IN', 'bn-BD'],
-    'gu': ['gu-IN'],
-    'pa': ['pa-IN'],
-    'ur': ['ur-IN', 'ur-PK'],
-    'or': ['or-IN'],
-    'as': ['as-IN'],
-    'ne': ['ne-NP', 'ne-IN'],
-    'sd': ['sd-IN'],
-    'ks': ['ks-IN'],
-    'mai': ['hi-IN'],   // no Maithili TTS → Hindi
-    'doi': ['hi-IN'],
-    'kok': ['mr-IN'],
-    'sat': ['hi-IN'],
-    'mni': ['bn-IN'],
-    'sa':  ['hi-IN'],
-    'en':  ['en-IN', 'en-GB', 'en-US']
-  };
-
-  function findVoice(codes) {
-    for (const bcp of codes) {
-      const lang2 = bcp.split('-')[0];
-      // exact match
-      let v = voices.find(x => x.lang.replace('_','-').toLowerCase() === bcp.toLowerCase());
-      if (v) return v;
-      // prefix match (e.g. te-IN matches te-IN-NeerajNeural)
-      v = voices.find(x => x.lang.replace('_','-').toLowerCase().startsWith(lang2));
-      if (v) return v;
-    }
-    return null;
-  }
-
-  const targetCodes = langToBCP[currentLanguage] || ['en-IN','en-US'];
-  const targetVoice = findVoice(targetCodes);
-
-  // ── Decide what TEXT to speak ──────────────────────────────────────────
-  // If a voice exists for the language → speak translated text
-  // If NO voice → fall back to English (translated text can't be pronounced)
-  let textToRead;
-  let displayTitle;
-
-  if (currentLanguage === 'en' || targetVoice) {
-    // Use pre-cached translated text (set by preTranslateSpeech in background)
-    const speakTitle   = translatedSpeakTitle   || activeArticle.title;
-    const speakExcerpt = translatedSpeakExcerpt || activeArticle.excerpt;
-    textToRead   = `${speakTitle}. ${speakExcerpt}`;
-    displayTitle = speakTitle;
-  } else {
-    // No TTS voice installed for this language — speak English original
-    textToRead   = `${activeArticle.title}. ${activeArticle.excerpt}`;
-    displayTitle = activeArticle.title;
-    document.getElementById('audioTrackPub').textContent = activeArticle.publisher + ' · (English audio — install ' + currentLanguage.toUpperCase() + ' language pack for native voice)';
-  }
-
-  document.getElementById('audioTrackTitle').textContent = displayTitle;
-  if (currentLanguage === 'en' || targetVoice) {
-    document.getElementById('audioTrackPub').textContent = activeArticle.publisher;
-  }
-
-  // ── Build and speak the utterance ─────────────────────────────────────
-  function doSpeak() {
-    speechSynthesis.cancel();
-    ttsUtterance = new SpeechSynthesisUtterance(textToRead);
-    window.speechUtterance = ttsUtterance; // keep alive (prevent GC)
-
-    if (targetVoice) {
-      ttsUtterance.voice = targetVoice;
-      ttsUtterance.lang  = targetVoice.lang;
-    } else {
-      // Pick best English voice explicitly
-      const enVoice = findVoice(['en-IN','en-GB','en-US']) || voices[0];
-      if (enVoice) ttsUtterance.voice = enVoice;
-      ttsUtterance.lang = 'en-US';
-    }
-    ttsUtterance.rate   = audioSpeed;
-    ttsUtterance.volume = 1;
-    ttsUtterance.pitch  = 1;
-
-    ttsUtterance.onstart = () => startAudioState();
-    ttsUtterance.onend   = () => stopAudioState();
-    ttsUtterance.onerror = (e) => {
-      console.warn('TTS error:', e.error, '— retrying with default voice');
-      // Last-resort: utterly default, no voice set, English text
-      const retry = new SpeechSynthesisUtterance(activeArticle.title + '. ' + activeArticle.excerpt);
-      retry.rate   = audioSpeed;
-      retry.onend  = () => stopAudioState();
-      retry.onerror = () => stopAudioState();
-      speechSynthesis.speak(retry);
-    };
-
-    speechSynthesis.speak(ttsUtterance);
-  }
-
-  // ── Gesture-safe chain ─────────────────────────────────────────────────
-  // Speak a single space SYNCHRONOUSLY (preserves user-gesture).
-  // The real speech fires in onend — browsers keep the gesture alive
-  // across the onend callback of a synchronously queued utterance.
-  speechSynthesis.cancel();
-  const kickstarter = new SpeechSynthesisUtterance('\u00A0'); // non-breaking space
-  kickstarter.volume = 0;
-  kickstarter.rate   = 2;  // finish near-instantly
-  kickstarter.onend   = doSpeak;
-  kickstarter.onerror = doSpeak; // trigger doSpeak even if the space errors
-  startAudioState();  // show wave animation immediately while kickstarter plays
-  speechSynthesis.speak(kickstarter);
-}
-
-
-
-function toggleAudio() {
-  if (audioIsPlaying) {
-    speechSynthesis.cancel();
-    stopAudioState();
-  } else {
-    speakActiveArticle();
-  }
-}
-
-function startAudioState() {
-  audioIsPlaying = true;
-  document.getElementById('audioPlayBtn').textContent = '⏸';
-  document.getElementById('audioWave').classList.add('playing');
-}
-
-function stopAudioState() {
-  audioIsPlaying = false;
-  document.getElementById('audioPlayBtn').textContent = '▶';
-  document.getElementById('audioWave').classList.remove('playing');
-}
-
-function closeAudioPlayer() {
-  speechSynthesis.cancel();
-  stopAudioState();
-  document.getElementById('audioPlayer').classList.remove('visible');
-}
 
 function cycleAudioSpeed() {
   const speeds = [1.0, 1.25, 1.5, 2.0];
