@@ -1733,7 +1733,7 @@ async function fetchSingleFeed(feed) {
 
   // ── Proxy 1: rss2json ────────────────────────────────────────────────
   try {
-    const r = await fetchWithTimeout(`https://api.rss2json.com/v1/api.json?count=20&rss_url=${encoded}`, 8000);
+    const r = await fetchWithTimeout(`https://api.rss2json.com/v1/api.json?rss_url=${encoded}`, 8000);
     if (r.ok) {
       const j = await r.json();
       if (j.status === 'ok' && j.items?.length > 0) {
@@ -1745,22 +1745,20 @@ async function fetchSingleFeed(feed) {
 
   // ── Proxy 2: allorigins.win (raw XML) ────────────────────────────────
   try {
-    const r2 = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encoded}`, 10000);
+    const r2 = await fetchWithTimeout(`https://api.allorigins.win/raw?url=${encoded}`, 10000);
     if (r2.ok) {
-      const w = await r2.json();
-      if (w.contents) {
-        const items = parseRssXml(w.contents, feed);
-        if (items.length > 0) {
-          console.log(`[Proxy2 OK] ${feed.name} → ${items.length} items`);
-          return items;
-        }
+      const xml = await r2.text();
+      const items = parseRssXml(xml, feed);
+      if (items.length > 0) {
+        console.log(`[Proxy2 OK] ${feed.name} → ${items.length} items`);
+        return items;
       }
     }
   } catch (e) { console.warn(`[Proxy2 fail] ${feed.name}:`, e.message); }
 
-  // ── Proxy 3: corsproxy.io ────────────────────────────────────────────
+  // ── Proxy 3: corsproxy.org ───────────────────────────────────────────
   try {
-    const r3 = await fetchWithTimeout(`https://corsproxy.io/?${encoded}`, 10000);
+    const r3 = await fetchWithTimeout(`https://corsproxy.org/?${encoded}`, 10000);
     if (r3.ok) {
       const xml = await r3.text();
       const items = parseRssXml(xml, feed);
@@ -1771,9 +1769,9 @@ async function fetchSingleFeed(feed) {
     }
   } catch (e) { console.warn(`[Proxy3 fail] ${feed.name}:`, e.message); }
 
-  // ── Proxy 4: thingproxy ──────────────────────────────────────────────
+  // ── Proxy 4: api.codetabs ───────────────────────────────────────────
   try {
-    const r4 = await fetchWithTimeout(`https://thingproxy.freeboard.io/fetch/${feed.url}`, 10000);
+    const r4 = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${feed.url}`, 10000);
     if (r4.ok) {
       const xml = await r4.text();
       const items = parseRssXml(xml, feed);
