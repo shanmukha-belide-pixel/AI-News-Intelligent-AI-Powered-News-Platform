@@ -2592,22 +2592,59 @@ async function playNextGTTSChunk() {
     return;
   }
   const chunk = gttsChunkQueue[gttsChunkIdx++];
-  const blobUrl = await fetchGTTSChunk(chunk, currentLanguage);
-  if (gttsAborted) return;
-  if (!blobUrl) { playNextGTTSChunk(); return; }
+  const gttsCode = GTTS_LANG[currentLanguage] || 'en';
+  const directUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=${gttsCode}&client=tw-ob&ttsspeed=${Math.min(audioSpeed, 1.5)}`;
 
   if (gttsAudioEl) { gttsAudioEl.pause(); gttsAudioEl.src = ''; }
-  gttsAudioEl = new Audio(blobUrl);
+
+  // Attempt 1: Direct Audio element (bypasses CORS for playback)
+  gttsAudioEl = new Audio(directUrl);
   gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
-  gttsAudioEl.onended = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
-  gttsAudioEl.onerror = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
-  try { await gttsAudioEl.play(); }
-  catch (_) { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); }
+  let directFailed = false;
+
+  gttsAudioEl.onended = () => playNextGTTSChunk();
+  gttsAudioEl.onerror = async () => {
+    if (directFailed) return;
+    directFailed = true;
+    console.warn('[TTS] Direct playback failed, trying CORS proxy...');
+
+    // Attempt 2: CORS Proxy
+    const blobUrl = await fetchGTTSChunk(chunk, currentLanguage);
+    if (gttsAborted) return;
+    if (blobUrl) {
+      if (gttsAudioEl) { gttsAudioEl.pause(); gttsAudioEl.src = ''; }
+      gttsAudioEl = new Audio(blobUrl);
+      gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
+      gttsAudioEl.onended = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
+      gttsAudioEl.onerror = () => {
+        URL.revokeObjectURL(blobUrl);
+        // Attempt 3: Web Speech API fallback
+        console.warn('[TTS] Proxy failed, using Web Speech API');
+        const rest = gttsChunkQueue.slice(gttsChunkIdx - 1).join('. ');
+        stopGTTS();
+        speakWithWebSpeech(rest, currentLanguage);
+      };
+      gttsAudioEl.play().catch(() => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); });
+    } else {
+      // Attempt 3: Web Speech API fallback
+      console.warn('[TTS] All proxies failed, using Web Speech API');
+      const rest = gttsChunkQueue.slice(gttsChunkIdx - 1).join('. ');
+      stopGTTS();
+      speakWithWebSpeech(rest, currentLanguage);
+    }
+  };
+
+  try {
+    await gttsAudioEl.play();
+  } catch (e) {
+    console.warn('[TTS] Direct play error:', e.message);
+    if (!directFailed) gttsAudioEl.onerror();
+  }
 }
 
 // ═══════ MAIN TTS ENTRY POINT ═══════
-// Strategy: Use Web Speech API INSTANTLY for immediate audio,
-// then try Google TTS in background for higher quality.
+// Strategy: Google Translate TTS first (supports all 22 languages),
+// then Web Speech API fallback for unsupported languages.
 async function speakActiveArticle() {
   if (!activeArticle) return;
 
@@ -2624,15 +2661,13 @@ async function speakActiveArticle() {
   // Reset everything
   stopGTTS();
   if (window.speechSynthesis) speechSynthesis.cancel();
-  gttsAborted = false;
+  gttsAborted    = false;
+  gttsChunkQueue = splitIntoChunks(fullText);
+  gttsChunkIdx   = 0;
 
   startAudioState();
-
-  // INSTANT: Use Web Speech API (works offline, zero latency)
-  if (window.speechSynthesis) {
-    speakWithWebSpeech(fullText, currentLanguage);
-    console.log(`[TTS] Playing with Web Speech API in ${currentLanguage}`);
-  }
+  console.log(`[TTS] Starting playback in ${currentLanguage} (${gttsChunkQueue.length} chunks)`);
+  playNextGTTSChunk();
 }
 
 function toggleAudio() {
