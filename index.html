@@ -2125,6 +2125,7 @@ async function setLanguage(langCode, el) {
   const activeChip = el || getLanguageChip(langCode);
   if (activeChip) activeChip.classList.add('active');
   document.documentElement.lang = getAudioVoiceProfile(langCode).speech[0] || langCode;
+  document.getElementById('audioVoiceSelect').value = langCode;
   syncAudioVoiceSelector();
   
   console.log(`Switched view language to: ${langCode}`);
