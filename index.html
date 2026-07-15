@@ -941,7 +941,7 @@ header {
   bottom: 28px;
   left: 50%;
   transform: translateX(-50%) translateY(140px);
-  width: 640px;
+  width: 760px;
   max-width: 92vw;
   background: rgba(20, 24, 60, 0.55);
   backdrop-filter: blur(28px) saturate(180%);
@@ -1124,6 +1124,44 @@ header {
   color: #fff;
   border-color: var(--primary);
   box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
+}
+
+.audio-voice-select {
+  max-width: 138px;
+  min-width: 118px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--primary-rgb), 0.25);
+  background: rgba(var(--primary-rgb), 0.12);
+  color: var(--primary);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 800;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.audio-voice-select option {
+  color: #111827;
+  background: #ffffff;
+}
+
+@media (max-width: 680px) {
+  .audio-player-bar {
+    width: calc(100vw - 24px);
+    gap: 8px;
+    padding: 12px;
+  }
+  .audio-wave {
+    display: none;
+  }
+  .audio-voice-select {
+    max-width: 98px;
+    min-width: 92px;
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -1439,6 +1477,31 @@ footer {
     <div class="wave-bar"></div>
     <div class="wave-bar"></div>
   </div>
+  <select class="audio-voice-select" id="audioVoiceSelect" title="Audio voice" onchange="setAudioVoiceLanguage(this.value)">
+    <option value="en">English</option>
+    <option value="as">Assamese</option>
+    <option value="bn">Bengali</option>
+    <option value="brx">Bodo</option>
+    <option value="doi">Dogri</option>
+    <option value="gu">Gujarati</option>
+    <option value="hi">Hindi</option>
+    <option value="kn">Kannada</option>
+    <option value="ks">Kashmiri</option>
+    <option value="kok">Konkani</option>
+    <option value="mai">Maithili</option>
+    <option value="ml">Malayalam</option>
+    <option value="mni">Manipuri</option>
+    <option value="mr">Marathi</option>
+    <option value="ne">Nepali</option>
+    <option value="or">Odia</option>
+    <option value="pa">Punjabi</option>
+    <option value="sa">Sanskrit</option>
+    <option value="sat">Santhali</option>
+    <option value="sd">Sindhi</option>
+    <option value="ta">Tamil</option>
+    <option value="te">Telugu</option>
+    <option value="ur">Urdu</option>
+  </select>
   <button class="audio-speed-btn" onclick="cycleAudioSpeed()" id="audioSpeedBtn">1.0x</button>
 </div>
 
@@ -1533,6 +1596,11 @@ const CAT_COLORS = {
 // INITIALIZATION
 // ═══════════════════════════════════════════════
 window.onload = () => {
+  syncAudioVoiceSelector();
+  refreshBrowserVoices();
+  if (window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = refreshBrowserVoices;
+  }
   updateGreeting();
   fetchLocationAndWeather();
   fetchNews('international');
@@ -1685,7 +1753,7 @@ function renderFallbackWeather() {
 // ═══════════════════════════════════════════════
 
 // Timed fetch — works in all browsers (no AbortSignal.timeout needed)
-function fetchWithTimeout(url, ms = 9000) {
+function fetchWithTimeout(url, ms = 5000) {
   return Promise.race([
     fetch(url),
     new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
@@ -1733,7 +1801,7 @@ async function fetchSingleFeed(feed) {
 
   // ── Proxy 1: rss2json ────────────────────────────────────────────────
   try {
-    const r = await fetchWithTimeout(`https://api.rss2json.com/v1/api.json?count=20&rss_url=${encoded}`, 8000);
+    const r = await fetchWithTimeout(`https://api.rss2json.com/v1/api.json?rss_url=${encoded}`, 5000);
     if (r.ok) {
       const j = await r.json();
       if (j.status === 'ok' && j.items?.length > 0) {
@@ -1745,22 +1813,20 @@ async function fetchSingleFeed(feed) {
 
   // ── Proxy 2: allorigins.win (raw XML) ────────────────────────────────
   try {
-    const r2 = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encoded}`, 10000);
+    const r2 = await fetchWithTimeout(`https://api.allorigins.win/raw?url=${encoded}`, 10000);
     if (r2.ok) {
-      const w = await r2.json();
-      if (w.contents) {
-        const items = parseRssXml(w.contents, feed);
-        if (items.length > 0) {
-          console.log(`[Proxy2 OK] ${feed.name} → ${items.length} items`);
-          return items;
-        }
+      const xml = await r2.text();
+      const items = parseRssXml(xml, feed);
+      if (items.length > 0) {
+        console.log(`[Proxy2 OK] ${feed.name} → ${items.length} items`);
+        return items;
       }
     }
   } catch (e) { console.warn(`[Proxy2 fail] ${feed.name}:`, e.message); }
 
-  // ── Proxy 3: corsproxy.io ────────────────────────────────────────────
+  // ── Proxy 3: corsproxy.org ───────────────────────────────────────────
   try {
-    const r3 = await fetchWithTimeout(`https://corsproxy.io/?${encoded}`, 10000);
+    const r3 = await fetchWithTimeout(`https://corsproxy.org/?${encoded}`, 10000);
     if (r3.ok) {
       const xml = await r3.text();
       const items = parseRssXml(xml, feed);
@@ -1771,9 +1837,9 @@ async function fetchSingleFeed(feed) {
     }
   } catch (e) { console.warn(`[Proxy3 fail] ${feed.name}:`, e.message); }
 
-  // ── Proxy 4: thingproxy ──────────────────────────────────────────────
+  // ── Proxy 4: api.codetabs ───────────────────────────────────────────
   try {
-    const r4 = await fetchWithTimeout(`https://thingproxy.freeboard.io/fetch/${feed.url}`, 10000);
+    const r4 = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${feed.url}`, 10000);
     if (r4.ok) {
       const xml = await r4.text();
       const items = parseRssXml(xml, feed);
@@ -2028,17 +2094,45 @@ function setCat(cat, el) {
 }
 
 // 22 Indian languages integration
+
+// Helper: find a language chip DOM element by its code
+function getLanguageChip(langCode) {
+  const chips = document.querySelectorAll('.lang-chip');
+  for (const c of chips) {
+    const match = c.getAttribute('onclick')?.match(/setLanguage\('([^']+)'/);
+    if (match && match[1] === langCode) return c;
+  }
+  return null;
+}
+
+// Helper: return voice profile for a language code
+function getAudioVoiceProfile(langCode) {
+  const BCP_SPEECH = {
+    'en': ['en-IN','en-GB','en-US'],
+    'hi': ['hi-IN'], 'te': ['te-IN'], 'ta': ['ta-IN'], 'kn': ['kn-IN'],
+    'ml': ['ml-IN'], 'mr': ['mr-IN'], 'bn': ['bn-IN','bn-BD'], 'gu': ['gu-IN'],
+    'pa': ['pa-IN'], 'ur': ['ur-IN','ur-PK'], 'or': ['or-IN'], 'as': ['as-IN'],
+    'ne': ['ne-NP'], 'sd': ['sd-IN'], 'sa': ['sa-IN'],
+    'ks': ['ur-IN'], 'mai': ['hi-IN'], 'doi': ['hi-IN'],
+    'kok': ['mr-IN'], 'sat': ['hi-IN'], 'mni': ['bn-IN'], 'brx': ['hi-IN']
+  };
+  return { speech: BCP_SPEECH[langCode] || ['en-IN'] };
+}
+
 async function setLanguage(langCode, el) {
   currentLanguage = langCode;
   document.querySelectorAll('.lang-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
+  const activeChip = el || getLanguageChip(langCode);
+  if (activeChip) activeChip.classList.add('active');
+  document.documentElement.lang = getAudioVoiceProfile(langCode).speech[0] || langCode;
+  syncAudioVoiceSelector();
   
   console.log(`Switched view language to: ${langCode}`);
   
   translatePageContent();
   
   if (activeArticle) {
-    preTranslateSpeech();
+    await preTranslateSpeech();
     
     // Translate open drawer header title
     const titleEl = document.getElementById('dTitle');
@@ -2322,8 +2416,36 @@ function openOriginalLink() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// TEXT TO SPEECH — Google Translate TTS (all 22 Indian languages)
-//                  + Web Speech API fallback
+// AUDIO VOICE SELECTOR — Sync dropdown with current language
+// ═══════════════════════════════════════════════════════════════════════
+function syncAudioVoiceSelector() {
+  const sel = document.getElementById('audioVoiceSelect');
+  if (sel) sel.value = currentLanguage;
+}
+
+function setAudioVoiceLanguage(langCode) {
+  currentLanguage = langCode;
+  // Also sync the lang-bar chips
+  document.querySelectorAll('.lang-chip').forEach(c => {
+    const chipLang = c.getAttribute('onclick')?.match(/setLanguage\('([^']+)'/)?.[1];
+    c.classList.toggle('active', chipLang === langCode);
+  });
+  // If audio is currently playing, restart in new language
+  if (audioIsPlaying && activeArticle) {
+    preTranslateSpeech().then(() => speakActiveArticle());
+  }
+}
+
+let availableBrowserVoices = [];
+function refreshBrowserVoices() {
+  if (window.speechSynthesis) {
+    availableBrowserVoices = speechSynthesis.getVoices();
+    console.log(`[Voices] ${availableBrowserVoices.length} browser voices loaded`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TEXT TO SPEECH — Web Speech API (primary, instant) + Google TTS (enhancement)
 // ═══════════════════════════════════════════════════════════════════════
 
 // Google Translate TTS language codes for all 22 Indian languages
@@ -2344,30 +2466,40 @@ const GTTS_LANG = {
   'ne':  'ne',   // Nepali
   'sd':  'sd',   // Sindhi
   'sa':  'sa',   // Sanskrit
-  'ks':  'ur',   // Kashmiri → Urdu (closest Google has)
+  'ks':  'ur',   // Kashmiri → Urdu
   'mai': 'hi',   // Maithili → Hindi
   'doi': 'hi',   // Dogri → Hindi
   'kok': 'mr',   // Konkani → Marathi
   'sat': 'hi',   // Santali → Hindi
   'mni': 'bn',   // Manipuri → Bengali
+  'brx': 'hi',   // Bodo → Hindi
+};
+
+// BCP-47 voice mapping for Web Speech API (all 22 languages)
+const BCP_MAP = {
+  'en': ['en-IN','en-GB','en-US'],
+  'hi': ['hi-IN'], 'te': ['te-IN'], 'ta': ['ta-IN'], 'kn': ['kn-IN'],
+  'ml': ['ml-IN'], 'mr': ['mr-IN'], 'bn': ['bn-IN','bn-BD'], 'gu': ['gu-IN'],
+  'pa': ['pa-IN'], 'ur': ['ur-IN','ur-PK'], 'or': ['or-IN'], 'as': ['as-IN'],
+  'ne': ['ne-NP'], 'sd': ['sd-IN'], 'sa': ['sa-IN'],
+  'ks': ['ur-IN'], 'mai': ['hi-IN'], 'doi': ['hi-IN'],
+  'kok': ['mr-IN'], 'sat': ['hi-IN'], 'mni': ['bn-IN'], 'brx': ['hi-IN']
 };
 
 // State
-let gttsAudioEl    = null;   // current HTMLAudioElement
-let gttsChunkQueue = [];     // text chunks to speak
+let gttsAudioEl    = null;
+let gttsChunkQueue = [];
 let gttsChunkIdx   = 0;
 let gttsAborted    = false;
 
 // Split text into ≤190-char chunks at sentence/word boundaries
 function splitIntoChunks(text, max = 190) {
   const chunks = [];
-  // Try to split on sentence endings first
   const sentences = text.replace(/([.!?।])\s+/g, '$1\n').split('\n');
   let cur = '';
   for (const s of sentences) {
     if (!s.trim()) continue;
     if (s.length > max) {
-      // Long sentence — split on words
       for (const word of s.split(' ')) {
         if ((cur + ' ' + word).length > max) {
           if (cur.trim()) chunks.push(cur.trim());
@@ -2387,54 +2519,40 @@ function splitIntoChunks(text, max = 190) {
   return chunks.filter(c => c.length > 1);
 }
 
-// Fetch one chunk from Google TTS via corsproxy.io → returns blob URL
-async function fetchGTTSChunk(text, langCode) {
-  const gttsCode = GTTS_LANG[langCode] || 'en';
-  const gUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${gttsCode}&client=tw-ob&ttsspeed=${Math.min(audioSpeed, 1.5)}`;
-  const proxies = [
-    `https://corsproxy.io/?${encodeURIComponent(gUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(gUrl)}`
-  ];
-  for (const proxyUrl of proxies) {
-    try {
-      const res = await fetchWithTimeout(proxyUrl, 8000);
-      if (!res.ok) continue;
-      const blob = await res.blob();
-      if (blob.size < 100) continue;
-      return URL.createObjectURL(blob);
-    } catch (_) { /* try next proxy */ }
+// Find the best voice for a given language code
+function findVoiceForLang(langCode) {
+  const voices = speechSynthesis.getVoices();
+  const codes = BCP_MAP[langCode] || BCP_MAP[GTTS_LANG[langCode]] || ['en-IN','en-US'];
+  for (const bcp of codes) {
+    const prefix = bcp.split('-')[0];
+    let v = voices.find(x => x.lang.replace('_','-').toLowerCase() === bcp.toLowerCase());
+    if (v) return v;
+    v = voices.find(x => x.lang.replace('_','-').toLowerCase().startsWith(prefix));
+    if (v) return v;
   }
-  return null; // all proxies failed
+  return voices.find(x => x.lang.startsWith('en')) || voices[0] || null;
 }
 
-// Play all queued GTTS chunks sequentially
-async function playNextGTTSChunk() {
-  if (gttsAborted || gttsChunkIdx >= gttsChunkQueue.length) {
-    if (!gttsAborted) stopAudioState();
-    return;
-  }
-  const chunk  = gttsChunkQueue[gttsChunkIdx++];
-  const blobUrl = await fetchGTTSChunk(chunk, currentLanguage);
+// Web Speech API — speaks text using browser built-in voices
+function speakWithWebSpeech(text, langCode) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
 
-  if (gttsAborted) return;
+  const utt = new SpeechSynthesisUtterance(text.slice(0, 2000));
+  window.speechUtterance = utt;
+  const v = findVoiceForLang(langCode);
+  if (v) { utt.voice = v; utt.lang = v.lang; } else { utt.lang = 'en-US'; }
+  utt.rate   = audioSpeed;
+  utt.volume = 1;
+  utt.onend  = () => stopAudioState();
+  utt.onerror = () => stopAudioState();
 
-  if (!blobUrl) {
-    playNextGTTSChunk();
-    return;
-  }
-
-  if (gttsAudioEl) { gttsAudioEl.pause(); gttsAudioEl.src = ''; }
-
-  gttsAudioEl = new Audio(blobUrl);
-  gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
-  gttsAudioEl.onended  = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
-  gttsAudioEl.onerror  = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
-  try {
-    await gttsAudioEl.play();
-  } catch (e) {
-    console.warn('GTTS autoplay blocked:', e);
-    playNextGTTSChunk();
-  }
+  // Chrome requires a silent kick utterance to reliably start
+  const kick = new SpeechSynthesisUtterance('\u00A0');
+  kick.volume = 0; kick.rate = 2;
+  kick.onend  = () => speechSynthesis.speak(utt);
+  kick.onerror = () => speechSynthesis.speak(utt);
+  speechSynthesis.speak(kick);
 }
 
 // Stop all GTTS audio
@@ -2445,50 +2563,56 @@ function stopGTTS() {
   gttsChunkIdx   = 0;
 }
 
-// Web Speech API fallback
-function speakWithWebSpeech(text, langCode) {
-  if (!window.speechSynthesis) return;
-  speechSynthesis.cancel();
-
-  const voices = speechSynthesis.getVoices();
-  const bcpMap = { hi:['hi-IN'], te:['te-IN'], ta:['ta-IN'], kn:['kn-IN'],
-    ml:['ml-IN'], mr:['mr-IN'], bn:['bn-IN','bn-BD'], gu:['gu-IN'],
-    pa:['pa-IN'], ur:['ur-IN','ur-PK'], or:['or-IN'], as:['as-IN'],
-    ne:['ne-NP'], en:['en-IN','en-GB','en-US'] };
-  const codes = bcpMap[langCode] || ['en-IN','en-US'];
-
-  function findVoice() {
-    for (const bcp of codes) {
-      const prefix = bcp.split('-')[0];
-      let v = voices.find(x => x.lang.replace('_','-').toLowerCase() === bcp.toLowerCase());
-      if (v) return v;
-      v = voices.find(x => x.lang.replace('_','-').toLowerCase().startsWith(prefix));
-      if (v) return v;
-    }
-    return voices.find(x => x.lang.startsWith('en')) || voices[0] || null;
+// Fetch one chunk from Google TTS → returns blob URL or null
+async function fetchGTTSChunk(text, langCode) {
+  const gttsCode = GTTS_LANG[langCode] || 'en';
+  const gUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${gttsCode}&client=tw-ob&ttsspeed=${Math.min(audioSpeed, 1.5)}`;
+  const proxies = [
+    `https://corsproxy.org/?${encodeURIComponent(gUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(gUrl)}`
+  ];
+  for (const proxyUrl of proxies) {
+    try {
+      const res = await fetchWithTimeout(proxyUrl, 5000);
+      if (!res.ok) continue;
+      const ct = res.headers.get('Content-Type') || '';
+      if (!ct.includes('audio') && !ct.includes('mpeg') && !ct.includes('octet')) continue;
+      const blob = await res.blob();
+      if (blob.size < 100) continue;
+      return URL.createObjectURL(blob);
+    } catch (_) {}
   }
-
-  const utt = new SpeechSynthesisUtterance(text.slice(0, 500));
-  window.speechUtterance = utt;
-  const v = findVoice();
-  if (v) { utt.voice = v; utt.lang = v.lang; } else { utt.lang = 'en-US'; }
-  utt.rate   = audioSpeed;
-  utt.volume = 1;
-  utt.onend  = () => stopAudioState();
-  utt.onerror = () => stopAudioState();
-
-  const kick = new SpeechSynthesisUtterance('\u00A0');
-  kick.volume = 0; kick.rate = 2;
-  kick.onend  = () => speechSynthesis.speak(utt);
-  kick.onerror = () => speechSynthesis.speak(utt);
-  speechSynthesis.speak(kick);
+  return null;
 }
 
-// Main TTS entry point — Google Translate TTS with Web Speech fallback
+// Play queued GTTS chunks sequentially
+async function playNextGTTSChunk() {
+  if (gttsAborted || gttsChunkIdx >= gttsChunkQueue.length) {
+    if (!gttsAborted) stopAudioState();
+    return;
+  }
+  const chunk = gttsChunkQueue[gttsChunkIdx++];
+  const blobUrl = await fetchGTTSChunk(chunk, currentLanguage);
+  if (gttsAborted) return;
+  if (!blobUrl) { playNextGTTSChunk(); return; }
+
+  if (gttsAudioEl) { gttsAudioEl.pause(); gttsAudioEl.src = ''; }
+  gttsAudioEl = new Audio(blobUrl);
+  gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
+  gttsAudioEl.onended = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
+  gttsAudioEl.onerror = () => { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); };
+  try { await gttsAudioEl.play(); }
+  catch (_) { URL.revokeObjectURL(blobUrl); playNextGTTSChunk(); }
+}
+
+// ═══════ MAIN TTS ENTRY POINT ═══════
+// Strategy: Use Web Speech API INSTANTLY for immediate audio,
+// then try Google TTS in background for higher quality.
 async function speakActiveArticle() {
   if (!activeArticle) return;
 
   document.getElementById('audioPlayer').classList.add('visible');
+  syncAudioVoiceSelector();
 
   const speakTitle   = translatedSpeakTitle   || activeArticle.title;
   const speakExcerpt = translatedSpeakExcerpt || activeArticle.excerpt;
@@ -2497,38 +2621,17 @@ async function speakActiveArticle() {
   document.getElementById('audioTrackTitle').textContent = speakTitle;
   document.getElementById('audioTrackPub').textContent   = activeArticle.publisher;
 
-  // Reset state
+  // Reset everything
   stopGTTS();
   if (window.speechSynthesis) speechSynthesis.cancel();
-  gttsAborted    = false;
-  gttsChunkQueue = splitIntoChunks(fullText);
-  gttsChunkIdx   = 0;
+  gttsAborted = false;
 
   startAudioState();
 
-  // Try Google TTS first
-  const firstBlobUrl = await fetchGTTSChunk(gttsChunkQueue[0] || speakTitle, currentLanguage);
-  if (gttsAborted) return;
-
-  if (firstBlobUrl) {
-    gttsAudioEl = new Audio(firstBlobUrl);
-    gttsAudioEl.playbackRate = audioSpeed > 1.5 ? 2 : 1;
-    gttsChunkIdx = 1;
-    gttsAudioEl.onended  = () => { URL.revokeObjectURL(firstBlobUrl); playNextGTTSChunk(); };
-    gttsAudioEl.onerror  = () => { URL.revokeObjectURL(firstBlobUrl); playNextGTTSChunk(); };
-    try {
-      await gttsAudioEl.play();
-    } catch (e) {
-      console.warn('GTTS blocked, falling back to Web Speech');
-      stopGTTS();
-      speakWithWebSpeech(fullText, currentLanguage);
-    }
-  } else {
-    console.warn('[TTS] Google TTS unavailable, using Web Speech API');
-    stopGTTS();
-    document.getElementById('audioTrackPub').textContent =
-      activeArticle.publisher + (currentLanguage !== 'en' ? ' · 🌐 Web Speech' : '');
+  // INSTANT: Use Web Speech API (works offline, zero latency)
+  if (window.speechSynthesis) {
     speakWithWebSpeech(fullText, currentLanguage);
+    console.log(`[TTS] Playing with Web Speech API in ${currentLanguage}`);
   }
 }
 
